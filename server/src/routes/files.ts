@@ -79,7 +79,7 @@ router.get('/:cartId', (req: Request, res: Response) => {
 // GET /api/files/download/:filename - Download file
 router.get('/download/:filename', (req: Request, res: Response) => {
   try {
-    const { filename } = req.params;
+    const filename = req.params.filename as string;
     const filePath = path.join(UPLOAD_DIR, filename);
 
     if (!fs.existsSync(filePath)) {

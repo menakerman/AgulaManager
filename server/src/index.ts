@@ -3,6 +3,7 @@ import cors from 'cors';
 import http from 'http';
 import { Server as SocketServer } from 'socket.io';
 import path from 'path';
+import fs from 'fs';
 
 import { getDatabase, closeDatabase } from './db/database';
 import { timerService } from './services/timerService';
@@ -21,9 +22,13 @@ const PORT = process.env.PORT || 3001;
 const app = express();
 const server = http.createServer(app);
 
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',')
+  : ['http://localhost:5173', 'http://localhost:3000'];
+
 const io = new SocketServer(server, {
   cors: {
-    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
   },
 });
@@ -33,7 +38,7 @@ app.set('io', io);
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
+  origin: allowedOrigins,
 }));
 app.use(express.json());
 app.use(auditLog);
@@ -52,6 +57,28 @@ app.use('/api/protocols', reportsRouter);
 // Health check
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Serve built client in production
+// Project root: walk up from __dirname until we find package.json with workspaces
+let projectRoot = __dirname;
+while (projectRoot !== path.dirname(projectRoot)) {
+  const pkg = path.join(projectRoot, 'package.json');
+  if (fs.existsSync(pkg)) {
+    try {
+      const content = JSON.parse(fs.readFileSync(pkg, 'utf-8'));
+      if (content.workspaces) break;
+    } catch {}
+  }
+  projectRoot = path.dirname(projectRoot);
+}
+const clientDist = path.join(projectRoot, 'client', 'dist');
+app.use(express.static(clientDist));
+app.get('*', (_req, res, next) => {
+  if (_req.path.startsWith('/api') || _req.path.startsWith('/socket.io') || _req.path.startsWith('/uploads')) {
+    return next();
+  }
+  res.sendFile(path.join(clientDist, 'index.html'));
 });
 
 // Socket.io connection

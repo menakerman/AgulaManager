@@ -57,6 +57,7 @@ export async function exportToExcel(carts: CartWithTimer[], filename: string = '
       orange: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFFFA500' } },
       expired: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFFF6347' } },
       red: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFFF0000' } },
+      paused: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FF87CEEB' } },
     };
 
     if (fill[cart.timer_status]) {
