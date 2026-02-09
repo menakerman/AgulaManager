@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#0891b2"/>
+    </linearGradient>
+    <clipPath id="clip">
+      <rect x="2" y="2" width="60" height="60" rx="14"/>
+    </clipPath>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#bg)"/>
+
+  <!-- Water wave at bottom -->
+  <g clip-path="url(#clip)">
+    <path d="M2 44 Q12 38 22 44 T42 44 T62 44 L62 62 L2 62 Z" fill="#0ea5e9" opacity="0.35"/>
+    <path d="M2 48 Q12 43 22 48 T42 48 T62 48 L62 62 L2 62 Z" fill="#0284c7" opacity="0.25"/>
+  </g>
+
+  <!-- Timer ring (bold, visible at small sizes) -->
+  <circle cx="32" cy="28" r="17" fill="none" stroke="white" stroke-width="3" opacity="0.25"/>
+
+  <!-- Timer progress arc (~75% green) -->
+  <circle cx="32" cy="28" r="17" fill="none" stroke="#4ade80" stroke-width="4" stroke-linecap="round"
+    stroke-dasharray="107" stroke-dashoffset="27" transform="rotate(-90 32 28)"/>
+
+  <!-- Clock hands -->
+  <!-- Hour hand -->
+  <line x1="32" y1="28" x2="32" y2="17" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  <!-- Minute hand -->
+  <line x1="32" y1="28" x2="40" y2="24" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <!-- Center dot -->
+  <circle cx="32" cy="28" r="2" fill="white"/>
+
+  <!-- Bubbles rising from water -->
+  <circle cx="44" cy="40" r="2.5" fill="white" opacity="0.5"/>
+  <circle cx="48" cy="35" r="1.8" fill="white" opacity="0.4"/>
+  <circle cx="42" cy="34" r="1.5" fill="white" opacity="0.3"/>
+</svg>
