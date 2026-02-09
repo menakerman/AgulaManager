@@ -194,6 +194,85 @@ Navigate to **"דוחות"** (Reports) to view summaries and export data as CSV,
 
 Click the moon/sun icon in the top bar to toggle dark mode.
 
+## Installing on a Tablet (Step by Step)
+
+The app is a PWA (Progressive Web App) — it can be installed on any tablet and works like a native app, including offline support.
+
+### Prerequisites
+
+You need a computer or server running the Agula Manager backend. The tablet connects to it over WiFi.
+
+### Step 1: Start the server
+
+On your computer/server (the machine that will run the backend):
+
+```bash
+git clone git@github.com:menakerman/AgulaManager.git
+cd AgulaManager
+npm install
+npm run build
+npm start
+```
+
+The server is now running on port 3001. Note the computer's local IP address:
+- **Mac**: System Settings > Wi-Fi > Details > IP Address (e.g., `192.168.1.50`)
+- **Linux**: Run `hostname -I`
+- **Windows**: Run `ipconfig` and look for IPv4 Address
+
+### Step 2: Connect the tablet to the same WiFi network
+
+Make sure the tablet and the server computer are on the **same WiFi network** (e.g., the boat's local network or a mobile hotspot).
+
+### Step 3: Open the app on the tablet
+
+Open the browser on the tablet and navigate to:
+
+```
+http://<server-ip>:3001
+```
+
+For example: `http://192.168.1.50:3001`
+
+The app should load with the full Hebrew interface.
+
+### Step 4: Install as an app on the home screen
+
+#### iPad / iPhone (Safari)
+
+1. Open the app URL in **Safari** (not Chrome)
+2. Tap the **Share button** (square with arrow pointing up) at the bottom of the screen
+3. Scroll down and tap **"Add to Home Screen"** (הוסף למסך הבית)
+4. Give it a name (e.g., "עגולה") and tap **"Add"** (הוסף)
+5. The app icon appears on your home screen — tap it to open in full-screen mode
+
+#### Android Tablet (Chrome)
+
+1. Open the app URL in **Chrome**
+2. Tap the **three-dot menu** (⋮) in the top-right corner
+3. Tap **"Add to Home screen"** (הוספה למסך הבית)
+4. Confirm the name and tap **"Add"** (הוספה)
+5. The app icon appears on your home screen — tap it to open in full-screen mode
+
+### Step 5: Verify it works
+
+1. Open the app from the home screen
+2. Create a test cart and verify the timer starts
+3. Test the check-in flow (הזדהות → עגולה חדשה)
+4. Verify audio alerts work (unmute the tablet and raise the volume)
+
+### Offline Mode
+
+Once loaded, the app caches itself and works even if WiFi disconnects temporarily. Actions performed offline are queued and synced when the connection is restored.
+
+### Tips for Boat Use
+
+- **Keep the tablet charged** — use a waterproof charging cable
+- **Lock screen rotation** to landscape for best layout
+- **Increase screen brightness** for outdoor visibility
+- **Enable Do Not Disturb** to prevent notifications from interrupting the app
+- **Set screen auto-lock to Never** (Settings > Display > Auto-Lock) so the dashboard stays visible
+- **Bookmark the URL** in case you need to re-open it
+
 ## Running Tests
 
 ```bash
