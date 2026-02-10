@@ -147,10 +147,15 @@ test.describe('Agula Manager - Full Flow', () => {
     await page.goto(BASE_URL);
     await expect(page.getByText(`#${num}`)).toBeVisible();
 
-    // Step 1: Click הזדהות to pause the timer
+    // Step 1: Click הזדהות to show location input
     const checkinBtn = page.getByRole('button', { name: 'הזדהות' });
     await expect(checkinBtn).toBeVisible();
     await checkinBtn.click();
+
+    // Step 1b: Confirm check-in (location is optional)
+    const confirmBtn = page.getByRole('button', { name: 'אישור הזדהות' });
+    await expect(confirmBtn).toBeVisible({ timeout: 3000 });
+    await confirmBtn.click();
 
     // Step 2: Should now show paused state with projected deadline
     await expect(page.getByText('שעת תחילת עגולה:')).toBeVisible({ timeout: 5000 });
