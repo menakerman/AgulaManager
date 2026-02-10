@@ -1,26 +1,18 @@
 import express from 'express';
-import cors from 'cors';
 import http from 'http';
 import { Server as SocketServer } from 'socket.io';
 import path from 'path';
 import fs from 'fs';
 
+import { createApp } from './app';
 import { getDatabase, closeDatabase } from './db/database';
 import { timerService } from './services/timerService';
 import { alertService } from './services/alertService';
 import { backupService } from './services/backupService';
-import { auditLog } from './middleware/auditLog';
-
-import cartsRouter from './routes/carts';
-import checkinsRouter from './routes/checkins';
-import eventsRouter from './routes/events';
-import filesRouter from './routes/files';
-import reportsRouter from './routes/reports';
-import divesRouter from './routes/dives';
 
 const PORT = process.env.PORT || 3001;
 
-const app = express();
+const app = createApp();
 const server = http.createServer(app);
 
 const allowedOrigins = process.env.CORS_ORIGIN
@@ -37,29 +29,8 @@ const io = new SocketServer(server, {
 // Store io instance for routes
 app.set('io', io);
 
-// Middleware
-app.use(cors({
-  origin: allowedOrigins,
-}));
-app.use(express.json());
-app.use(auditLog);
-
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '..', 'data', 'uploads')));
-
-// API Routes
-app.use('/api/dives', divesRouter);
-app.use('/api/carts', cartsRouter);
-app.use('/api/carts', checkinsRouter);
-app.use('/api/events', eventsRouter);
-app.use('/api/files', filesRouter);
-app.use('/api/reports', reportsRouter);
-app.use('/api/protocols', reportsRouter);
-
-// Health check
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
 
 // Serve built client in production
 // Project root: walk up from __dirname until we find package.json with workspaces
