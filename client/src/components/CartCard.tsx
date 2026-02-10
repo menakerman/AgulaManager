@@ -9,6 +9,8 @@ import { formatTime, formatClockTime } from '../utils/time';
 interface CartCardProps {
   cart: CartWithTimer;
   onEdit: (cart: CartWithTimer) => void;
+  isSelected?: boolean;
+  onToggleSelect?: (id: number) => void;
 }
 
 // Compute the rounded start time if a new round were started right now
@@ -16,12 +18,13 @@ function getProjectedStartTime(): string {
   return roundToNearest5Minutes(new Date()).toISOString();
 }
 
-export default function CartCard({ cart, onEdit }: CartCardProps) {
+export default function CartCard({ cart, onEdit, isSelected, onToggleSelect }: CartCardProps) {
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetReason, setResetReason] = useState('');
   const [showActions, setShowActions] = useState(false);
+  const isWaiting = cart.timer_status === 'waiting';
   const isPaused = cart.timer_status === 'paused';
-  const timer = useTimer(isPaused ? null : cart.next_deadline);
+  const timer = useTimer(isPaused || isWaiting ? null : cart.next_deadline);
   const { endCart, resetTimer, deleteCart } = useCartStore();
 
   // Live projected start time while paused - updates every second
@@ -35,15 +38,18 @@ export default function CartCard({ cart, onEdit }: CartCardProps) {
     return () => clearInterval(interval);
   }, [isPaused]);
 
-  const timerClass = isPaused
-    ? 'bg-primary-50 dark:bg-blue-900/30 border-primary-500'
-    : {
-        green: 'timer-green',
-        orange: 'timer-orange',
-        expired: 'timer-red',
-        red: 'timer-red',
-        paused: '',
-      }[timer.status];
+  const timerClass = isWaiting
+    ? 'timer-waiting'
+    : isPaused
+      ? 'bg-primary-50 dark:bg-blue-900/30 border-primary-500'
+      : ({
+          waiting: 'timer-waiting',
+          green: 'timer-green',
+          orange: 'timer-orange',
+          expired: 'timer-red',
+          red: 'timer-red',
+          paused: '',
+        } as Record<string, string>)[timer.status];
 
   const cartTypeLabel = {
     pair: 'זוג',
@@ -75,12 +81,25 @@ export default function CartCard({ cart, onEdit }: CartCardProps) {
       {/* Header */}
       <div className="flex items-center justify-between p-4 pb-2">
         <div className="flex items-center gap-3">
+          {isWaiting && onToggleSelect && (
+            <input
+              type="checkbox"
+              checked={isSelected ?? false}
+              onChange={() => onToggleSelect(cart.id)}
+              className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+            />
+          )}
           <div className="text-2xl font-bold text-primary-700 dark:text-primary-400">
             #{cart.cart_number}
           </div>
           <span className="text-xs px-2 py-1 rounded-full bg-gray-200 dark:bg-gray-700">
             {cartTypeLabel}
           </span>
+          {isWaiting && (
+            <span className="text-xs px-2 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-bold">
+              ממתין
+            </span>
+          )}
           {isPaused && (
             <span className="text-xs px-2 py-1 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 font-bold">
               מושהה
@@ -101,9 +120,11 @@ export default function CartCard({ cart, onEdit }: CartCardProps) {
               <button onClick={() => { onEdit(cart); setShowActions(false); }} className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg">
                 עריכה
               </button>
-              <button onClick={() => { setShowResetModal(true); setShowActions(false); }} className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">
-                איפוס טיימר
-              </button>
+              {!isWaiting && (
+                <button onClick={() => { setShowResetModal(true); setShowActions(false); }} className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">
+                  איפוס טיימר
+                </button>
+              )}
               <button onClick={() => { handleEnd(); setShowActions(false); }} className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-warning-600">
                 סיום פעילות
               </button>
@@ -141,7 +162,7 @@ export default function CartCard({ cart, onEdit }: CartCardProps) {
       )}
 
       {/* Agula schedule - when given & when it ends */}
-      {!isPaused && cart.next_deadline && (
+      {!isPaused && !isWaiting && cart.next_deadline && (
         <div className="px-4 py-2">
           <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-700/50 rounded-lg px-3 py-2">
             <div className="text-center flex-1">
@@ -163,7 +184,14 @@ export default function CartCard({ cart, onEdit }: CartCardProps) {
 
       {/* Timer Display */}
       <div className="px-4 py-2">
-        {isPaused ? (
+        {isWaiting ? (
+          /* Waiting state: show dashed gray box */
+          <div className="text-center py-4 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50">
+            <div className="text-lg font-bold text-gray-400 dark:text-gray-500">
+              ממתין להתחלה
+            </div>
+          </div>
+        ) : isPaused ? (
           /* Paused state: show projected next deadline */
           <div className="text-center py-4 rounded-xl border-2 bg-primary-50 dark:bg-blue-900/30 border-primary-500">
             <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">שעת תחילת עגולה:</div>
@@ -210,7 +238,7 @@ export default function CartCard({ cart, onEdit }: CartCardProps) {
 
       {/* Action button */}
       <div className="p-4 pt-2">
-        <CheckInButton cartId={cart.id} timerStatus={isPaused ? 'paused' : timer.status} isPaused={isPaused} />
+        <CheckInButton cartId={cart.id} timerStatus={isWaiting ? 'waiting' : isPaused ? 'paused' : timer.status} isPaused={isPaused} isWaiting={isWaiting} />
       </div>
 
       {/* Reset Timer Modal */}

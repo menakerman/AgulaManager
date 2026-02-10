@@ -24,6 +24,21 @@ async function ensureActiveDive(request: any): Promise<number> {
   return dive.id;
 }
 
+// Helper: create a cart and start its timer via API
+async function createAndStartCart(request: any, num: number, diverNames: string[]): Promise<any> {
+  const createRes = await request.post(`${BASE_URL}/api/carts`, {
+    data: { cart_number: num, cart_type: 'pair', diver_names: diverNames },
+  });
+  const cart = await createRes.json();
+  await request.post(`${BASE_URL}/api/carts/start-timers`, {
+    data: { cart_ids: [cart.id] },
+  });
+  // Fetch updated cart
+  const cartsRes = await request.get(`${BASE_URL}/api/carts`);
+  const carts = await cartsRes.json();
+  return carts.find((c: any) => c.id === cart.id);
+}
+
 // Helper: end active dive if one exists
 async function endActiveDive(request: any): Promise<void> {
   const res = await request.get(`${BASE_URL}/api/dives/active`);
@@ -115,9 +130,7 @@ test.describe('Agula Manager - Full Flow', () => {
 
   test('should show timer countdown on active cart', async ({ page }) => {
     const num = nextCartNum();
-    await page.request.post(`${BASE_URL}/api/carts`, {
-      data: { cart_number: num, cart_type: 'pair', diver_names: ['אבי', 'רון'] },
-    });
+    await createAndStartCart(page.request, num, ['אבי', 'רון']);
 
     await page.goto(BASE_URL);
     await expect(page.getByText(`#${num}`)).toBeVisible();
@@ -129,9 +142,7 @@ test.describe('Agula Manager - Full Flow', () => {
 
   test('should show הזדהות button on active cart', async ({ page }) => {
     const num = nextCartNum();
-    await page.request.post(`${BASE_URL}/api/carts`, {
-      data: { cart_number: num, cart_type: 'pair', diver_names: ['שרה', 'רחל'] },
-    });
+    await createAndStartCart(page.request, num, ['שרה', 'רחל']);
 
     await page.goto(BASE_URL);
     await expect(page.getByText(`#${num}`)).toBeVisible();
@@ -140,9 +151,7 @@ test.describe('Agula Manager - Full Flow', () => {
 
   test('full check-in flow: הזדהות → paused → עגולה חדשה', async ({ page }) => {
     const num = nextCartNum();
-    await page.request.post(`${BASE_URL}/api/carts`, {
-      data: { cart_number: num, cart_type: 'pair', diver_names: ['משה', 'אהרון'] },
-    });
+    await createAndStartCart(page.request, num, ['משה', 'אהרון']);
 
     await page.goto(BASE_URL);
     await expect(page.getByText(`#${num}`)).toBeVisible();
@@ -203,10 +212,7 @@ test.describe('Agula Manager - Full Flow', () => {
 
   test('should end cart activity', async ({ page }) => {
     const num = nextCartNum();
-    const res = await page.request.post(`${BASE_URL}/api/carts`, {
-      data: { cart_number: num, cart_type: 'pair', diver_names: ['טל', 'גל'] },
-    });
-    expect(res.ok()).toBeTruthy();
+    await createAndStartCart(page.request, num, ['טל', 'גל']);
 
     await page.goto(BASE_URL);
     await expect(page.getByText(`#${num}`)).toBeVisible({ timeout: 10000 });
@@ -227,12 +233,8 @@ test.describe('Agula Manager - Full Flow', () => {
   test('should search and filter carts', async ({ page }) => {
     const num1 = nextCartNum();
     const num2 = nextCartNum();
-    await page.request.post(`${BASE_URL}/api/carts`, {
-      data: { cart_number: num1, cart_type: 'pair', diver_names: ['אלון', 'ברק'] },
-    });
-    await page.request.post(`${BASE_URL}/api/carts`, {
-      data: { cart_number: num2, cart_type: 'pair', diver_names: ['חיים', 'דוד'] },
-    });
+    await createAndStartCart(page.request, num1, ['אלון', 'ברק']);
+    await createAndStartCart(page.request, num2, ['חיים', 'דוד']);
 
     await page.goto(BASE_URL);
     await expect(page.getByText(`#${num1}`)).toBeVisible();
@@ -258,12 +260,43 @@ test.describe('Agula Manager - Full Flow', () => {
     expect(href).toBe('/icon.svg');
   });
 
+  test('new cart shows waiting state', async ({ page }) => {
+    const num = nextCartNum();
+    await page.request.post(`${BASE_URL}/api/carts`, {
+      data: { cart_number: num, cart_type: 'pair', diver_names: ['ענבר', 'נועם'] },
+    });
+
+    await page.goto(BASE_URL);
+    await expect(page.getByText(`#${num}`)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('ממתין להתחלה')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'התחל עגולה' })).toBeVisible();
+  });
+
+  test('start timer from waiting state via UI', async ({ page }) => {
+    const num = nextCartNum();
+    await page.request.post(`${BASE_URL}/api/carts`, {
+      data: { cart_number: num, cart_type: 'pair', diver_names: ['ליאור', 'עדי'] },
+    });
+
+    await page.goto(BASE_URL);
+    await expect(page.getByText(`#${num}`)).toBeVisible({ timeout: 5000 });
+
+    // Click "התחל עגולה" to show location input
+    await page.getByRole('button', { name: 'התחל עגולה' }).click();
+
+    // Confirm start (location is optional)
+    const confirmBtn = page.getByRole('button', { name: 'התחל עגולה' });
+    await expect(confirmBtn).toBeVisible({ timeout: 3000 });
+    await confirmBtn.click();
+
+    // Should now show active timer state
+    await expect(page.getByText('זמן נותר')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('button', { name: 'הזדהות' })).toBeVisible();
+  });
+
   test('API: check-in pauses cart correctly', async ({ page }) => {
     const num = nextCartNum();
-    const createRes = await page.request.post(`${BASE_URL}/api/carts`, {
-      data: { cart_number: num, cart_type: 'pair', diver_names: ['Test1', 'Test2'] },
-    });
-    const created = await createRes.json();
+    const created = await createAndStartCart(page.request, num, ['Test1', 'Test2']);
     expect(created.timer_status).not.toBe('paused');
 
     // Check in (pause)

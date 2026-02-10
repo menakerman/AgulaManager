@@ -45,4 +45,8 @@
   .timer-red {
     @apply bg-danger-50 dark:bg-red-900/30 border-danger-500 animate-flash;
   }
+
+  .timer-waiting {
+    @apply bg-gray-50 dark:bg-gray-800/50 border-gray-300 dark:border-gray-600;
+  }
 }

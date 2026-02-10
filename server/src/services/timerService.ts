@@ -33,9 +33,9 @@ class TimerService {
     if (carts.length > 0 && this.io) {
       this.io.emit('timer:tick', carts);
 
-      // Check for alerts (skip paused carts)
+      // Check for alerts (skip paused and waiting carts)
       for (const cart of carts) {
-        if (cart.timer_status !== 'paused') {
+        if (cart.timer_status !== 'paused' && cart.timer_status !== 'waiting') {
           alertService.checkCart(cart);
         }
       }
@@ -75,6 +75,34 @@ class TimerService {
     const now = new Date();
 
     return carts.map(cart => {
+      // If cart has no checkin and is not paused, it's in waiting state
+      if (cart.last_checkin === null && cart.paused_at === null) {
+        let diverNames: string[];
+        try {
+          diverNames = JSON.parse(cart.diver_names);
+        } catch {
+          diverNames = [cart.diver_names];
+        }
+
+        return {
+          id: cart.id,
+          cart_number: cart.cart_number,
+          cart_type: cart.cart_type as CartWithTimer['cart_type'],
+          diver_names: diverNames,
+          dive_id: cart.dive_id,
+          status: cart.status as CartWithTimer['status'],
+          started_at: cart.started_at,
+          ended_at: cart.ended_at,
+          created_at: cart.created_at,
+          last_checkin: null,
+          next_deadline: null,
+          timer_status: 'waiting' as TimerStatus,
+          seconds_remaining: 0,
+          paused_at: null,
+          checkin_location: cart.checkin_location,
+        };
+      }
+
       // If cart is paused, show paused status
       if (cart.paused_at) {
         let diverNames: string[];

@@ -4,7 +4,7 @@ export type CartType = 'pair' | 'trio' | 'six';
 export type CartStatus = 'active' | 'completed';
 export type EventType = 'warning' | 'overdue' | 'emergency';
 export type EventStatus = 'open' | 'resolved';
-export type TimerStatus = 'green' | 'orange' | 'red' | 'expired' | 'paused';
+export type TimerStatus = 'waiting' | 'green' | 'orange' | 'red' | 'expired' | 'paused';
 export type TeamRole = 'חובש' | 'בקר' | 'פקח צולל';
 export type DiveStatus = 'active' | 'completed';
 
@@ -114,6 +114,11 @@ export interface CheckInRequest {
 
 export interface ResetTimerRequest {
   reason: string;
+}
+
+export interface StartTimersRequest {
+  cart_ids: number[];
+  location?: string;
 }
 
 export interface CreateEventRequest {

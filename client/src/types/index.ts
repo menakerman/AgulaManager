@@ -23,6 +23,7 @@ export type {
   UpdateEventRequest,
   CreateProtocolRequest,
   CreateDiveRequest,
+  StartTimersRequest,
   ServerToClientEvents,
   ClientToServerEvents,
 } from 'shared/types';

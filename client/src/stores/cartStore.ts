@@ -8,14 +8,18 @@ interface CartState {
   loading: boolean;
   error: string | null;
   searchQuery: string;
-  filterStatus: 'all' | 'green' | 'orange' | 'expired';
+  filterStatus: 'all' | 'waiting' | 'green' | 'orange' | 'expired';
+  selectedCartIds: Set<number>;
 
   // Actions
   setCarts: (carts: CartWithTimer[]) => void;
   updateCart: (cart: CartWithTimer) => void;
   removeCart: (cartId: number) => void;
   setSearchQuery: (query: string) => void;
-  setFilterStatus: (status: 'all' | 'green' | 'orange' | 'expired') => void;
+  setFilterStatus: (status: 'all' | 'waiting' | 'green' | 'orange' | 'expired') => void;
+  toggleCartSelection: (id: number) => void;
+  selectAllWaiting: () => void;
+  clearSelection: () => void;
 
   // API actions
   fetchCarts: () => Promise<void>;
@@ -27,6 +31,7 @@ interface CartState {
   checkIn: (id: number, data?: CheckInRequest) => Promise<void>;
   newRound: (id: number, data?: CheckInRequest) => Promise<void>;
   resetTimer: (id: number, data: ResetTimerRequest) => Promise<void>;
+  startTimers: (cartIds: number[], location?: string) => Promise<void>;
 
   // Computed
   filteredCarts: () => CartWithTimer[];
@@ -38,6 +43,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   error: null,
   searchQuery: '',
   filterStatus: 'all',
+  selectedCartIds: new Set<number>(),
 
   setCarts: (carts) => {
     set({ carts });
@@ -58,6 +64,21 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   setSearchQuery: (query) => set({ searchQuery: query }),
   setFilterStatus: (status) => set({ filterStatus: status }),
+
+  toggleCartSelection: (id) => set((state) => {
+    const next = new Set(state.selectedCartIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return { selectedCartIds: next };
+  }),
+
+  selectAllWaiting: () => set((state) => {
+    const waitingIds = state.carts
+      .filter((c) => c.timer_status === 'waiting')
+      .map((c) => c.id);
+    return { selectedCartIds: new Set(waitingIds) };
+  }),
+
+  clearSelection: () => set({ selectedCartIds: new Set<number>() }),
 
   fetchCarts: async () => {
     set({ loading: true, error: null });
@@ -159,6 +180,17 @@ export const useCartStore = create<CartState>((set, get) => ({
         timestamp: new Date().toISOString(),
       });
     }
+  },
+
+  startTimers: async (cartIds, location) => {
+    const result = await api.startTimers(cartIds, location);
+    set((state) => {
+      const updatedMap = new Map(result.carts.map((c) => [c.id, c]));
+      return {
+        carts: state.carts.map((c) => updatedMap.get(c.id) ?? c),
+        selectedCartIds: new Set<number>(),
+      };
+    });
   },
 
   filteredCarts: () => {

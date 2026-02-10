@@ -11,12 +11,14 @@ import DiveGate from './DiveGate';
 import DiveInfoBar from './DiveInfoBar';
 
 export default function Dashboard() {
-  const { carts, loading, error, fetchCarts, filteredCarts } = useCartStore();
+  const { carts, loading, error, fetchCarts, filteredCarts, selectedCartIds, toggleCartSelection, selectAllWaiting, clearSelection, startTimers } = useCartStore();
   const activeAlertCount = useAlertStore((s) => s.activeAlertCount);
   const { dive, loading: diveLoading } = useDiveStore();
   const [showCartForm, setShowCartForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [editingCart, setEditingCart] = useState<CartWithTimer | null>(null);
+  const [showBulkStartModal, setShowBulkStartModal] = useState(false);
+  const [bulkLocation, setBulkLocation] = useState('');
 
   useEffect(() => {
     fetchCarts();
@@ -33,9 +35,11 @@ export default function Dashboard() {
   };
 
   const displayed = filteredCarts();
+  const waitingCarts = carts.filter((c) => c.timer_status === 'waiting').length;
   const activeCarts = carts.filter((c) => c.timer_status === 'green').length;
   const warningCarts = carts.filter((c) => c.timer_status === 'orange').length;
   const expiredCarts = carts.filter((c) => c.timer_status === 'expired').length;
+  const selectedCount = selectedCartIds.size;
 
   if (diveLoading) {
     return (
@@ -58,10 +62,14 @@ export default function Dashboard() {
       <DiveInfoBar />
 
       {/* Stats bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <div className="card p-4 text-center">
           <div className="text-3xl font-bold text-primary-600">{carts.length}</div>
           <div className="text-sm text-gray-500 dark:text-gray-400">עגלות פעילות</div>
+        </div>
+        <div className="card p-4 text-center">
+          <div className="text-3xl font-bold text-gray-500">{waitingCarts}</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">ממתין</div>
         </div>
         <div className="card p-4 text-center">
           <div className="text-3xl font-bold text-success-600">{activeCarts}</div>
@@ -96,6 +104,28 @@ export default function Dashboard() {
         <SearchFilter />
       </div>
 
+      {/* Bulk actions for waiting carts */}
+      {waitingCarts > 0 && (
+        <div className="flex flex-wrap gap-3 items-center card p-3">
+          <button onClick={selectAllWaiting} className="btn-secondary text-sm py-1.5 px-3">
+            בחר ממתינים ({waitingCarts})
+          </button>
+          {selectedCount > 0 && (
+            <>
+              <button
+                onClick={() => setShowBulkStartModal(true)}
+                className="btn-primary text-sm py-1.5 px-3"
+              >
+                התחל עגולה ({selectedCount})
+              </button>
+              <button onClick={clearSelection} className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 underline">
+                נקה בחירה
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Error */}
       {error && (
         <div className="bg-warning-50 dark:bg-yellow-900/20 text-warning-600 p-3 rounded-lg text-sm">
@@ -113,7 +143,7 @@ export default function Dashboard() {
           <p className="text-gray-500 mt-4">טוען עגלות...</p>
         </div>
       ) : (
-        <CartGrid carts={displayed} onEditCart={handleEdit} />
+        <CartGrid carts={displayed} onEditCart={handleEdit} selectedCartIds={selectedCartIds} onToggleSelect={toggleCartSelection} />
       )}
 
       {/* Modals */}
@@ -122,6 +152,40 @@ export default function Dashboard() {
       )}
       {showImport && (
         <CartImport onClose={() => setShowImport(false)} />
+      )}
+      {showBulkStartModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowBulkStartModal(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 m-4 max-w-md w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold mb-4">התחל עגולה - {selectedCount} עגלות</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">מיקום (לא חובה)</label>
+                <input
+                  type="text"
+                  value={bulkLocation}
+                  onChange={(e) => setBulkLocation(e.target.value)}
+                  placeholder="מיקום הזדהות"
+                  className="input-field"
+                  dir="rtl"
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button onClick={() => { setShowBulkStartModal(false); setBulkLocation(''); }} className="btn-secondary">ביטול</button>
+                <button
+                  onClick={async () => {
+                    await startTimers([...selectedCartIds], bulkLocation.trim() || undefined);
+                    setShowBulkStartModal(false);
+                    setBulkLocation('');
+                  }}
+                  className="btn-primary"
+                >
+                  התחל עגולה
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

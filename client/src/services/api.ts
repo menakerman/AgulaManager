@@ -76,6 +76,12 @@ export const api = {
       body: JSON.stringify({ carts }),
     }),
 
+  startTimers: (cartIds: number[], location?: string) =>
+    request<{ started: number; carts: CartWithTimer[] }>('/carts/start-timers', {
+      method: 'POST',
+      body: JSON.stringify({ cart_ids: cartIds, location }),
+    }),
+
   endCart: (id: number) =>
     request<CartWithTimer>(`/carts/${id}/end`, { method: 'POST' }),
 

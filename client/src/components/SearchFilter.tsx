@@ -5,6 +5,7 @@ export default function SearchFilter() {
 
   const filters = [
     { value: 'all' as const, label: 'הכל', color: 'bg-gray-200 dark:bg-gray-700' },
+    { value: 'waiting' as const, label: 'ממתין', color: 'bg-gray-500' },
     { value: 'green' as const, label: 'תקין', color: 'bg-success-500' },
     { value: 'orange' as const, label: 'אזהרה', color: 'bg-warning-500' },
     { value: 'expired' as const, label: 'פג', color: 'bg-danger-500' },

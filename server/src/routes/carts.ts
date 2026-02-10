@@ -3,7 +3,7 @@ import { getDatabase } from '../db/database';
 import { timerService } from '../services/timerService';
 import { alertService } from '../services/alertService';
 import { CHECKIN_INTERVAL_MINUTES, roundToNearest5Minutes } from '../../../shared/types';
-import type { CreateCartRequest, UpdateCartRequest } from '../../../shared/types';
+import type { CreateCartRequest, UpdateCartRequest, StartTimersRequest } from '../../../shared/types';
 
 const router = Router();
 
@@ -42,13 +42,6 @@ router.post('/', (req: Request, res: Response) => {
       'INSERT INTO carts (cart_number, cart_type, diver_names, started_at, dive_id) VALUES (?, ?, ?, ?, ?)'
     );
     const result = stmt.run(cart_number, cart_type, JSON.stringify(diver_names), now, resolvedDiveId);
-
-    // Create initial check-in with 5-min rounded deadline
-    const rawDeadline = new Date(Date.now() + CHECKIN_INTERVAL_MINUTES * 60 * 1000);
-    const deadline = roundToNearest5Minutes(rawDeadline).toISOString();
-    db.prepare(
-      'INSERT INTO checkins (cart_id, checked_in_at, next_deadline) VALUES (?, ?, ?)'
-    ).run(result.lastInsertRowid, now, deadline);
 
     const cart = timerService.getCartWithTimer(Number(result.lastInsertRowid));
 
@@ -149,8 +142,6 @@ router.post('/import', (req: Request, res: Response) => {
 
     const db = getDatabase();
     const now = new Date().toISOString();
-    const rawDeadline = new Date(Date.now() + CHECKIN_INTERVAL_MINUTES * 60 * 1000);
-    const deadline = roundToNearest5Minutes(rawDeadline).toISOString();
 
     // Auto-fill dive_id from active dive
     let resolvedDiveId: number | null = null;
@@ -159,9 +150,6 @@ router.post('/import', (req: Request, res: Response) => {
 
     const insertCart = db.prepare(
       'INSERT INTO carts (cart_number, cart_type, diver_names, started_at, dive_id) VALUES (?, ?, ?, ?, ?)'
-    );
-    const insertCheckin = db.prepare(
-      'INSERT INTO checkins (cart_id, checked_in_at, next_deadline) VALUES (?, ?, ?)'
     );
 
     const importMany = db.transaction((cartList: CreateCartRequest[]) => {
@@ -175,7 +163,6 @@ router.post('/import', (req: Request, res: Response) => {
             now,
             resolvedDiveId
           );
-          insertCheckin.run(result.lastInsertRowid, now, deadline);
           created.push(Number(result.lastInsertRowid));
         } catch (err) {
           console.warn(`Skipping duplicate cart #${cart.cart_number}`);
@@ -200,6 +187,64 @@ router.post('/import', (req: Request, res: Response) => {
   } catch (err) {
     console.error('Error importing carts:', err);
     res.status(500).json({ error: 'Failed to import carts' });
+  }
+});
+
+// POST /api/carts/start-timers - Start timers for waiting carts
+router.post('/start-timers', (req: Request, res: Response) => {
+  try {
+    const { cart_ids, location } = req.body as StartTimersRequest;
+
+    if (!cart_ids || !Array.isArray(cart_ids) || cart_ids.length === 0) {
+      res.status(400).json({ error: 'cart_ids array is required' });
+      return;
+    }
+
+    const db = getDatabase();
+    const now = new Date().toISOString();
+    const rawDeadline = new Date(Date.now() + CHECKIN_INTERVAL_MINUTES * 60 * 1000);
+    const deadline = roundToNearest5Minutes(rawDeadline).toISOString();
+
+    const insertCheckin = db.prepare(
+      'INSERT INTO checkins (cart_id, checked_in_at, next_deadline) VALUES (?, ?, ?)'
+    );
+    const updateLocation = db.prepare(
+      'UPDATE carts SET checkin_location = ? WHERE id = ?'
+    );
+    const hasCheckin = db.prepare(
+      'SELECT 1 FROM checkins WHERE cart_id = ? LIMIT 1'
+    );
+
+    const startMany = db.transaction((ids: number[]) => {
+      const started: number[] = [];
+      for (const id of ids) {
+        // Skip carts that already have checkins
+        if (hasCheckin.get(id)) continue;
+        insertCheckin.run(id, now, deadline);
+        if (location?.trim()) {
+          updateLocation.run(location.trim(), id);
+        }
+        started.push(id);
+      }
+      return started;
+    });
+
+    const startedIds = startMany(cart_ids);
+    const allCarts = timerService.getActiveCartsWithTimers();
+
+    const io = req.app.get('io');
+    if (io) {
+      for (const cart of allCarts) {
+        if (startedIds.includes(cart.id)) {
+          io.emit('cart:updated', cart);
+        }
+      }
+    }
+
+    res.json({ started: startedIds.length, carts: allCarts.filter(c => startedIds.includes(c.id)) });
+  } catch (err) {
+    console.error('Error starting timers:', err);
+    res.status(500).json({ error: 'Failed to start timers' });
   }
 });
 

@@ -52,7 +52,8 @@ export async function exportToExcel(carts: CartWithTimer[], filename: string = '
     });
 
     // Color-code by timer status
-    const fill = {
+    const fill: Record<string, { type: 'pattern'; pattern: 'solid'; fgColor: { argb: string } }> = {
+      waiting: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFD3D3D3' } },
       green: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FF90EE90' } },
       orange: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFFFA500' } },
       expired: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFFF6347' } },

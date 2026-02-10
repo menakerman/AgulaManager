@@ -4,9 +4,11 @@ import CartCard from './CartCard';
 interface CartGridProps {
   carts: CartWithTimer[];
   onEditCart: (cart: CartWithTimer) => void;
+  selectedCartIds?: Set<number>;
+  onToggleSelect?: (id: number) => void;
 }
 
-export default function CartGrid({ carts, onEditCart }: CartGridProps) {
+export default function CartGrid({ carts, onEditCart, selectedCartIds, onToggleSelect }: CartGridProps) {
   if (carts.length === 0) {
     return (
       <div className="text-center py-16">
@@ -22,7 +24,7 @@ export default function CartGrid({ carts, onEditCart }: CartGridProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {carts.map((cart) => (
-        <CartCard key={cart.id} cart={cart} onEdit={onEditCart} />
+        <CartCard key={cart.id} cart={cart} onEdit={onEditCart} isSelected={selectedCartIds?.has(cart.id)} onToggleSelect={onToggleSelect} />
       ))}
     </div>
   );
