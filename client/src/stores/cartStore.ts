@@ -32,6 +32,7 @@ interface CartState {
   newRound: (id: number, data?: CheckInRequest) => Promise<void>;
   resetTimer: (id: number, data: ResetTimerRequest) => Promise<void>;
   startTimers: (cartIds: number[], location?: string) => Promise<void>;
+  updateLocation: (id: number, location: string) => Promise<void>;
 
   // Computed
   filteredCarts: () => CartWithTimer[];
@@ -191,6 +192,13 @@ export const useCartStore = create<CartState>((set, get) => ({
         selectedCartIds: new Set<number>(),
       };
     });
+  },
+
+  updateLocation: async (id, location) => {
+    const cart = await api.updateLocation(id, location);
+    set((state) => ({
+      carts: state.carts.map((c) => (c.id === id ? cart : c)),
+    }));
   },
 
   filteredCarts: () => {

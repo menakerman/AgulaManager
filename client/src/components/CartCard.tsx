@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { CartWithTimer } from '../types';
 import { roundToNearest5Minutes } from '../types';
 import { useTimer } from '../hooks/useTimer';
@@ -22,10 +22,17 @@ export default function CartCard({ cart, onEdit, isSelected, onToggleSelect }: C
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetReason, setResetReason] = useState('');
   const [showActions, setShowActions] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [locationModalValue, setLocationModalValue] = useState('');
+  const [showPostStartLocation, setShowPostStartLocation] = useState(false);
+  const [postStartLocation, setPostStartLocation] = useState('');
+  const [postStartCountdown, setPostStartCountdown] = useState(30);
+  const postStartIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const postStartInputRef = useRef<HTMLInputElement>(null);
   const isWaiting = cart.timer_status === 'waiting';
   const isPaused = cart.timer_status === 'paused';
   const timer = useTimer(isPaused || isWaiting ? null : cart.next_deadline);
-  const { endCart, resetTimer, deleteCart } = useCartStore();
+  const { endCart, resetTimer, deleteCart, updateLocation } = useCartStore();
 
   // Live projected start time while paused - updates every second
   const [projectedStartTime, setProjectedStartTime] = useState(getProjectedStartTime);
@@ -37,6 +44,85 @@ export default function CartCard({ cart, onEdit, isSelected, onToggleSelect }: C
     }, 1000);
     return () => clearInterval(interval);
   }, [isPaused]);
+
+  // Clean up post-start interval on unmount
+  useEffect(() => {
+    return () => {
+      if (postStartIntervalRef.current) {
+        clearInterval(postStartIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Focus the post-start location input when it appears
+  useEffect(() => {
+    if (showPostStartLocation && postStartInputRef.current) {
+      postStartInputRef.current.focus();
+    }
+  }, [showPostStartLocation]);
+
+  const dismissPostStartLocation = useCallback(async () => {
+    if (postStartIntervalRef.current) {
+      clearInterval(postStartIntervalRef.current);
+      postStartIntervalRef.current = null;
+    }
+    // Auto-save if location was typed
+    if (postStartLocation.trim()) {
+      try {
+        await updateLocation(cart.id, postStartLocation.trim());
+      } catch (err) {
+        console.error('Failed to save location:', err);
+      }
+    }
+    setShowPostStartLocation(false);
+    setPostStartLocation('');
+    setPostStartCountdown(30);
+  }, [postStartLocation, cart.id, updateLocation]);
+
+  const handleTimerStarted = useCallback(() => {
+    setShowPostStartLocation(true);
+    setPostStartCountdown(30);
+    setPostStartLocation('');
+
+    if (postStartIntervalRef.current) {
+      clearInterval(postStartIntervalRef.current);
+    }
+
+    let count = 30;
+    postStartIntervalRef.current = setInterval(() => {
+      count -= 1;
+      setPostStartCountdown(count);
+      if (count <= 0) {
+        // Will be handled by the effect below
+        clearInterval(postStartIntervalRef.current!);
+        postStartIntervalRef.current = null;
+      }
+    }, 1000);
+  }, []);
+
+  // Auto-dismiss when countdown hits 0
+  useEffect(() => {
+    if (showPostStartLocation && postStartCountdown <= 0) {
+      dismissPostStartLocation();
+    }
+  }, [postStartCountdown, showPostStartLocation, dismissPostStartLocation]);
+
+  const handlePostStartSubmit = async () => {
+    if (postStartIntervalRef.current) {
+      clearInterval(postStartIntervalRef.current);
+      postStartIntervalRef.current = null;
+    }
+    if (postStartLocation.trim()) {
+      try {
+        await updateLocation(cart.id, postStartLocation.trim());
+      } catch (err) {
+        console.error('Failed to save location:', err);
+      }
+    }
+    setShowPostStartLocation(false);
+    setPostStartLocation('');
+    setPostStartCountdown(30);
+  };
 
   const timerClass = isWaiting
     ? 'timer-waiting'
@@ -74,6 +160,17 @@ export default function CartCard({ cart, onEdit, isSelected, onToggleSelect }: C
     if (confirm('האם למחוק את העגלה? פעולה זו לא ניתנת לביטול.')) {
       await deleteCart(cart.id);
     }
+  };
+
+  const handleLocationModalSave = async () => {
+    if (!locationModalValue.trim()) return;
+    try {
+      await updateLocation(cart.id, locationModalValue.trim());
+    } catch (err) {
+      console.error('Failed to update location:', err);
+    }
+    setLocationModalValue('');
+    setShowLocationModal(false);
   };
 
   return (
@@ -120,6 +217,11 @@ export default function CartCard({ cart, onEdit, isSelected, onToggleSelect }: C
               <button onClick={() => { onEdit(cart); setShowActions(false); }} className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg">
                 עריכה
               </button>
+              {!isWaiting && (
+                <button onClick={() => { setShowLocationModal(true); setLocationModalValue(cart.checkin_location || ''); setShowActions(false); }} className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">
+                  עדכן מיקום
+                </button>
+              )}
               {!isWaiting && (
                 <button onClick={() => { setShowResetModal(true); setShowActions(false); }} className="block w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">
                   איפוס טיימר
@@ -171,7 +273,7 @@ export default function CartCard({ cart, onEdit, isSelected, onToggleSelect }: C
                 {cart.last_checkin ? formatClockTime(cart.last_checkin) : formatClockTime(cart.started_at)}
               </div>
             </div>
-            <div className="text-gray-300 dark:text-gray-600 text-xl px-2">→</div>
+            <div className="text-gray-300 dark:text-gray-600 text-xl px-2">&rarr;</div>
             <div className="text-center flex-1">
               <div className="text-xs text-gray-500 dark:text-gray-400">עגולה עד</div>
               <div className="text-2xl font-black font-mono text-primary-700 dark:text-primary-400">
@@ -229,6 +331,39 @@ export default function CartCard({ cart, onEdit, isSelected, onToggleSelect }: C
         )}
       </div>
 
+      {/* Post-start location input with countdown */}
+      {showPostStartLocation && (
+        <div className="px-4 pb-2">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <input
+              ref={postStartInputRef}
+              type="text"
+              value={postStartLocation}
+              onChange={(e) => setPostStartLocation(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handlePostStartSubmit();
+              }}
+              placeholder="מיקום (לא חובה)"
+              className="input-field text-sm py-1.5 flex-1"
+              dir="rtl"
+            />
+            <span className="text-xs font-mono font-bold text-gray-400 dark:text-gray-500 min-w-[28px] text-center">
+              {postStartCountdown}s
+            </span>
+            <button
+              onClick={handlePostStartSubmit}
+              className="py-1.5 px-3 rounded-lg text-sm font-bold bg-primary-600 hover:bg-primary-700 text-white transition-all"
+            >
+              שמור
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Last identification */}
       {cart.last_checkin && (
         <div className="px-4 pb-1 text-xs text-gray-500 dark:text-gray-400">
@@ -238,7 +373,13 @@ export default function CartCard({ cart, onEdit, isSelected, onToggleSelect }: C
 
       {/* Action button */}
       <div className="p-4 pt-2">
-        <CheckInButton cartId={cart.id} timerStatus={isWaiting ? 'waiting' : isPaused ? 'paused' : timer.status} isPaused={isPaused} isWaiting={isWaiting} />
+        <CheckInButton
+          cartId={cart.id}
+          timerStatus={isWaiting ? 'waiting' : isPaused ? 'paused' : timer.status}
+          isPaused={isPaused}
+          isWaiting={isWaiting}
+          onTimerStarted={handleTimerStarted}
+        />
       </div>
 
       {/* Reset Timer Modal */}
@@ -256,6 +397,31 @@ export default function CartCard({ cart, onEdit, isSelected, onToggleSelect }: C
             <div className="flex gap-2 justify-end">
               <button onClick={() => setShowResetModal(false)} className="btn-secondary">ביטול</button>
               <button onClick={handleReset} disabled={!resetReason.trim()} className="btn-primary">אפס טיימר</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Update Location Modal */}
+      {showLocationModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowLocationModal(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 m-4 max-w-md w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold mb-4">עדכן מיקום - עגלה #{cart.cart_number}</h3>
+            <input
+              type="text"
+              value={locationModalValue}
+              onChange={(e) => setLocationModalValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleLocationModalSave();
+              }}
+              placeholder="מיקום"
+              className="input-field mb-4"
+              dir="rtl"
+              autoFocus
+            />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setShowLocationModal(false)} className="btn-secondary">ביטול</button>
+              <button onClick={handleLocationModalSave} disabled={!locationModalValue.trim()} className="btn-primary">שמור</button>
             </div>
           </div>
         </div>

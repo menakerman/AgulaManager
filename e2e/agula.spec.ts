@@ -281,15 +281,10 @@ test.describe('Agula Manager - Full Flow', () => {
     await page.goto(BASE_URL);
     await expect(page.getByText(`#${num}`)).toBeVisible({ timeout: 5000 });
 
-    // Click "התחל עגולה" to show location input
+    // Click "התחל עגולה" - timer starts immediately (no confirm step)
     await page.getByRole('button', { name: 'התחל עגולה' }).click();
 
-    // Confirm start (location is optional)
-    const confirmBtn = page.getByRole('button', { name: 'התחל עגולה' });
-    await expect(confirmBtn).toBeVisible({ timeout: 3000 });
-    await confirmBtn.click();
-
-    // Should now show active timer state
+    // Should now show active timer state directly
     await expect(page.getByText('זמן נותר')).toBeVisible({ timeout: 5000 });
     await expect(page.getByRole('button', { name: 'הזדהות' })).toBeVisible();
   });

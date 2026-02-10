@@ -6,9 +6,10 @@ interface CheckInButtonProps {
   timerStatus: string;
   isPaused: boolean;
   isWaiting?: boolean;
+  onTimerStarted?: () => void;
 }
 
-export default function CheckInButton({ cartId, timerStatus, isPaused, isWaiting }: CheckInButtonProps) {
+export default function CheckInButton({ cartId, timerStatus, isPaused, isWaiting, onTimerStarted }: CheckInButtonProps) {
   const [loading, setLoading] = useState(false);
   const [showLocationInput, setShowLocationInput] = useState(false);
   const [location, setLocation] = useState('');
@@ -25,8 +26,15 @@ export default function CheckInButton({ cartId, timerStatus, isPaused, isWaiting
 
   const handlePress = async () => {
     if (isWaiting) {
-      // Cart is waiting -> show location input for starting the timer
-      setShowLocationInput(true);
+      // Cart is waiting -> start timer immediately (no location input)
+      setLoading(true);
+      try {
+        await startTimers([cartId]);
+        onTimerStarted?.();
+      } catch (err) {
+        console.error('Action failed:', err);
+      }
+      setLoading(false);
     } else if (isPaused) {
       // Cart is paused -> start new round immediately
       setLoading(true);
@@ -45,11 +53,7 @@ export default function CheckInButton({ cartId, timerStatus, isPaused, isWaiting
   const handleConfirmCheckIn = async () => {
     setLoading(true);
     try {
-      if (isWaiting) {
-        await startTimers([cartId], location.trim() || undefined);
-      } else {
-        await checkIn(cartId, location.trim() ? { location: location.trim() } : undefined);
-      }
+      await checkIn(cartId, location.trim() ? { location: location.trim() } : undefined);
       setLocation('');
       setShowLocationInput(false);
     } catch (err) {
@@ -82,7 +86,7 @@ export default function CheckInButton({ cartId, timerStatus, isPaused, isWaiting
               if (e.key === 'Enter') handleConfirmCheckIn();
               if (e.key === 'Escape') handleCancel();
             }}
-            placeholder={isWaiting ? "מיקום (לא חובה)" : "מיקום הזדהות (לא חובה)"}
+            placeholder="מיקום הזדהות (לא חובה)"
             className="input-field text-sm py-2 flex-1"
             dir="rtl"
           />
@@ -101,8 +105,6 @@ export default function CheckInButton({ cartId, timerStatus, isPaused, isWaiting
                 </svg>
                 מעדכן...
               </span>
-            ) : isWaiting ? (
-              'התחל עגולה'
             ) : (
               'אישור הזדהות'
             )}

@@ -82,6 +82,12 @@ export const api = {
       body: JSON.stringify({ cart_ids: cartIds, location }),
     }),
 
+  updateLocation: (id: number, location: string) =>
+    request<CartWithTimer>(`/carts/${id}/location`, {
+      method: 'PUT',
+      body: JSON.stringify({ location }),
+    }),
+
   endCart: (id: number) =>
     request<CartWithTimer>(`/carts/${id}/end`, { method: 'POST' }),
 

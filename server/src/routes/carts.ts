@@ -61,6 +61,33 @@ router.post('/', (req: Request, res: Response) => {
   }
 });
 
+// PUT /api/carts/:id/location - Update cart location
+router.put('/:id/location', (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { location } = req.body as { location: string };
+
+    if (!location?.trim()) {
+      res.status(400).json({ error: 'location is required' });
+      return;
+    }
+
+    const db = getDatabase();
+    db.prepare('UPDATE carts SET checkin_location = ? WHERE id = ?').run(location.trim(), id);
+
+    const cart = timerService.getCartWithTimer(Number(id));
+    const io = req.app.get('io');
+    if (io && cart) {
+      io.emit('cart:updated', cart);
+    }
+
+    res.json(cart);
+  } catch (err) {
+    console.error('Error updating location:', err);
+    res.status(500).json({ error: 'Failed to update location' });
+  }
+});
+
 // PUT /api/carts/:id - Update cart
 router.put('/:id', (req: Request, res: Response) => {
   try {

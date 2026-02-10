@@ -18,7 +18,6 @@ export default function Dashboard() {
   const [showImport, setShowImport] = useState(false);
   const [editingCart, setEditingCart] = useState<CartWithTimer | null>(null);
   const [showBulkStartModal, setShowBulkStartModal] = useState(false);
-  const [bulkLocation, setBulkLocation] = useState('');
 
   useEffect(() => {
     fetchCarts();
@@ -156,33 +155,18 @@ export default function Dashboard() {
       {showBulkStartModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowBulkStartModal(false)}>
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 m-4 max-w-md w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold mb-4">התחל עגולה - {selectedCount} עגלות</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">מיקום (לא חובה)</label>
-                <input
-                  type="text"
-                  value={bulkLocation}
-                  onChange={(e) => setBulkLocation(e.target.value)}
-                  placeholder="מיקום הזדהות"
-                  className="input-field"
-                  dir="rtl"
-                  autoFocus
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <button onClick={() => { setShowBulkStartModal(false); setBulkLocation(''); }} className="btn-secondary">ביטול</button>
-                <button
-                  onClick={async () => {
-                    await startTimers([...selectedCartIds], bulkLocation.trim() || undefined);
-                    setShowBulkStartModal(false);
-                    setBulkLocation('');
-                  }}
-                  className="btn-primary"
-                >
-                  התחל עגולה
-                </button>
-              </div>
+            <h3 className="text-lg font-bold mb-4">התחל עגולה ל-{selectedCount} עגלות?</h3>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setShowBulkStartModal(false)} className="btn-secondary">ביטול</button>
+              <button
+                onClick={async () => {
+                  await startTimers([...selectedCartIds]);
+                  setShowBulkStartModal(false);
+                }}
+                className="btn-primary"
+              >
+                התחל עגולה
+              </button>
             </div>
           </div>
         </div>
