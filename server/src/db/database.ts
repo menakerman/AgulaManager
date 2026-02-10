@@ -34,6 +34,41 @@ export function getDatabase(): Database.Database {
       db.exec('ALTER TABLE carts ADD COLUMN dive_id INTEGER REFERENCES dives(id)');
     }
 
+    // Migrate unique constraint from cart_number alone to (cart_number, dive_id)
+    const indexes = db.prepare("PRAGMA index_list(carts)").all() as Array<{ name: string; unique: number }>;
+    const hasOldUnique = indexes.some(idx => {
+      if (!idx.unique) return false;
+      const cols = db.prepare(`PRAGMA index_info("${idx.name}")`).all() as Array<{ name: string }>;
+      return cols.length === 1 && cols[0].name === 'cart_number';
+    });
+    if (hasOldUnique) {
+      // SQLite can't drop constraints directly; recreate the table
+      // Must disable FK checks temporarily since other tables reference carts
+      db.pragma('foreign_keys = OFF');
+      db.exec(`DROP TABLE IF EXISTS carts_new`);
+      db.exec(`
+        CREATE TABLE carts_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          cart_number INTEGER NOT NULL,
+          cart_type TEXT CHECK(cart_type IN ('pair', 'trio', 'six')) DEFAULT 'pair',
+          diver_names TEXT NOT NULL,
+          dive_id INTEGER REFERENCES dives(id),
+          status TEXT CHECK(status IN ('active', 'completed')) DEFAULT 'active',
+          started_at TEXT NOT NULL,
+          ended_at TEXT,
+          paused_at TEXT,
+          checkin_location TEXT,
+          created_at TEXT DEFAULT (datetime('now')),
+          UNIQUE(cart_number, dive_id)
+        );
+        INSERT INTO carts_new SELECT id, cart_number, cart_type, diver_names, dive_id, status, started_at, ended_at, paused_at, checkin_location, created_at FROM carts;
+        DROP TABLE carts;
+        ALTER TABLE carts_new RENAME TO carts;
+        CREATE INDEX IF NOT EXISTS idx_carts_status ON carts(status);
+      `);
+      db.pragma('foreign_keys = ON');
+    }
+
     console.log(`Database initialized at ${DB_PATH} (WAL mode)`);
   }
 

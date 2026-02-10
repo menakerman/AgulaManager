@@ -14,15 +14,17 @@ export function createSchema(db: Database.Database): void {
 
     CREATE TABLE IF NOT EXISTS carts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      cart_number INTEGER UNIQUE NOT NULL,
+      cart_number INTEGER NOT NULL,
       cart_type TEXT CHECK(cart_type IN ('pair', 'trio', 'six')) DEFAULT 'pair',
       diver_names TEXT NOT NULL,
+      dive_id INTEGER REFERENCES dives(id),
       status TEXT CHECK(status IN ('active', 'completed')) DEFAULT 'active',
       started_at TEXT NOT NULL,
       ended_at TEXT,
       paused_at TEXT,
       checkin_location TEXT,
-      created_at TEXT DEFAULT (datetime('now'))
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(cart_number, dive_id)
     );
 
     CREATE TABLE IF NOT EXISTS checkins (
