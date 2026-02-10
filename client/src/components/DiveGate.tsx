@@ -72,7 +72,7 @@ export default function DiveGate() {
           <div className="text-4xl mb-3">🤿</div>
           <h1 className="text-2xl font-bold mb-2">התחלת צלילה</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm">
-            יש להתחיל צלילה לפני הוספת עגלות
+            יש להזין מנהל צלילה ולהזין עגלות לפני התחלת הצלילה
           </p>
         </div>
 
