@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { getSocket } from '../services/socket';
 import { useCartStore } from '../stores/cartStore';
 import { useAlertStore } from '../stores/alertStore';
+import { useEmergencyScreenStore } from '../stores/emergencyScreenStore';
 
 export function useSocket(): void {
   const setCarts = useCartStore((s) => s.setCarts);
@@ -42,6 +43,7 @@ export function useSocket(): void {
 
     socket.on('alert:overdue', (cart) => {
       addAlert('overdue', cart);
+      useEmergencyScreenStore.getState().startEmergency(cart.id, cart.cart_number, cart.diver_names);
     });
 
     socket.on('alert:emergency', (cart) => {

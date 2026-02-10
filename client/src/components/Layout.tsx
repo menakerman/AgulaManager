@@ -3,6 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
 import AlertBanner from './AlertBanner';
 import AlertCenter from './AlertCenter';
+import EmergencyOverlay from './EmergencyOverlay';
+import EmergencyMiniBadge from './EmergencyMiniBadge';
 import { useAlertStore } from '../stores/alertStore';
 import { useOffline } from '../hooks/useOffline';
 
@@ -128,6 +130,10 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Alert Center Modal */}
       <AlertCenter />
+
+      {/* Emergency Screen */}
+      <EmergencyOverlay />
+      <EmergencyMiniBadge />
     </div>
   );
 }
