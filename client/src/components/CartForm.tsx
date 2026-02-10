@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { CartWithTimer, CartType } from '../types';
 import { useCartStore } from '../stores/cartStore';
+import { useDiveStore } from '../stores/diveStore';
 
 interface CartFormProps {
   editCart?: CartWithTimer | null;
@@ -15,6 +16,7 @@ export default function CartForm({ editCart, onClose }: CartFormProps) {
   const [loading, setLoading] = useState(false);
 
   const { createCart, editCart: updateCart } = useCartStore();
+  const dive = useDiveStore((s) => s.dive);
 
   useEffect(() => {
     if (editCart) {
@@ -55,7 +57,7 @@ export default function CartForm({ editCart, onClose }: CartFormProps) {
       if (editCart) {
         await updateCart(editCart.id, { cart_number: num, cart_type: cartType, diver_names: names });
       } else {
-        await createCart({ cart_number: num, cart_type: cartType, diver_names: names });
+        await createCart({ cart_number: num, cart_type: cartType, diver_names: names, dive_id: dive?.id });
       }
       onClose();
     } catch (err: any) {

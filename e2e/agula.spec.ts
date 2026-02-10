@@ -8,6 +8,78 @@ function nextCartNum() {
   return cartNumCounter++;
 }
 
+// Helper: ensure an active dive exists via API, return dive id
+async function ensureActiveDive(request: any): Promise<number> {
+  // Check for existing active dive
+  const res = await request.get(`${BASE_URL}/api/dives/active`);
+  if (res.ok()) {
+    const dive = await res.json();
+    return dive.id;
+  }
+  // Create one
+  const createRes = await request.post(`${BASE_URL}/api/dives`, {
+    data: { manager_name: 'Test Manager', team_members: [] },
+  });
+  const dive = await createRes.json();
+  return dive.id;
+}
+
+// Helper: end active dive if one exists
+async function endActiveDive(request: any): Promise<void> {
+  const res = await request.get(`${BASE_URL}/api/dives/active`);
+  if (res.ok()) {
+    const dive = await res.json();
+    await request.post(`${BASE_URL}/api/dives/${dive.id}/end`);
+  }
+}
+
+test.describe('Agula Manager - Dive Flow', () => {
+  test.beforeEach(async ({ page }) => {
+    // Clean up any existing active carts via API
+    const res = await page.request.get(`${BASE_URL}/api/carts`);
+    const carts = await res.json();
+    for (const cart of carts) {
+      await page.request.delete(`${BASE_URL}/api/carts/${cart.id}`);
+    }
+    // End any active dive
+    await endActiveDive(page.request);
+  });
+
+  test('should show DiveGate when no active dive', async ({ page }) => {
+    await page.goto(BASE_URL);
+    await expect(page.getByText('התחל צלילה')).toBeVisible();
+    await expect(page.getByText('מנהל צלילה')).toBeVisible();
+  });
+
+  test('should start a dive and show dashboard', async ({ page }) => {
+    await page.goto(BASE_URL);
+
+    // Fill dive form
+    await page.getByPlaceholder('שם מנהל הצלילה').fill('יוסי כהן');
+    await page.getByRole('button', { name: 'התחל צלילה' }).click();
+
+    // Dashboard should load with dive info bar
+    await expect(page.getByText('מנהל צלילה: יוסי כהן')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('button', { name: 'עגלה חדשה' })).toBeVisible();
+  });
+
+  test('should end dive and return to DiveGate', async ({ page }) => {
+    // Create a dive via API
+    await ensureActiveDive(page.request);
+
+    await page.goto(BASE_URL);
+    await expect(page.getByText('סיים צלילה')).toBeVisible({ timeout: 5000 });
+    await page.getByRole('button', { name: 'סיים צלילה' }).click();
+
+    // Confirm dialog
+    await expect(page.getByText('כל העגלות הפעילות יסתיימו')).toBeVisible();
+    await page.getByRole('button', { name: 'סיים צלילה' }).last().click();
+
+    // Should return to DiveGate
+    await expect(page.getByPlaceholder('שם מנהל הצלילה')).toBeVisible({ timeout: 5000 });
+  });
+});
+
 test.describe('Agula Manager - Full Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Clean up any existing active carts via API
@@ -16,6 +88,8 @@ test.describe('Agula Manager - Full Flow', () => {
     for (const cart of carts) {
       await page.request.delete(`${BASE_URL}/api/carts/${cart.id}`);
     }
+    // Ensure active dive exists
+    await ensureActiveDive(page.request);
   });
 
   test('should load the dashboard', async ({ page }) => {

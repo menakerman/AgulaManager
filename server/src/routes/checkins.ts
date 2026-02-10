@@ -23,8 +23,12 @@ router.post('/:id/checkin', (req: Request, res: Response) => {
 
     const now = new Date().toISOString();
 
-    // Pause the cart - set paused_at
-    db.prepare('UPDATE carts SET paused_at = ? WHERE id = ?').run(now, id);
+    // Pause the cart - set paused_at and update location if provided
+    if (location) {
+      db.prepare('UPDATE carts SET paused_at = ?, checkin_location = ? WHERE id = ?').run(now, location, id);
+    } else {
+      db.prepare('UPDATE carts SET paused_at = ? WHERE id = ?').run(now, id);
+    }
 
     // Reset alerts for this cart
     alertService.resetAlerts(Number(id));

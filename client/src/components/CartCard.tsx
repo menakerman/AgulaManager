@@ -127,6 +127,19 @@ export default function CartCard({ cart, onEdit }: CartCardProps) {
         </div>
       </div>
 
+      {/* Check-in Location */}
+      {cart.checkin_location && (
+        <div className="px-4 pb-2">
+          <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-1.5">
+            <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span className="text-sm font-medium text-amber-800 dark:text-amber-300">{cart.checkin_location}</span>
+          </div>
+        </div>
+      )}
+
       {/* Agula schedule - when given & when it ends */}
       {!isPaused && cart.next_deadline && (
         <div className="px-4 py-2">

@@ -21,7 +21,7 @@ router.get('/', (_req: Request, res: Response) => {
 // POST /api/carts - Create new cart
 router.post('/', (req: Request, res: Response) => {
   try {
-    const { cart_number, cart_type = 'pair', diver_names } = req.body as CreateCartRequest;
+    const { cart_number, cart_type = 'pair', diver_names, dive_id } = req.body as CreateCartRequest;
 
     if (!cart_number || !diver_names || !Array.isArray(diver_names) || diver_names.length === 0) {
       res.status(400).json({ error: 'cart_number and diver_names are required' });
@@ -31,10 +31,17 @@ router.post('/', (req: Request, res: Response) => {
     const db = getDatabase();
     const now = new Date().toISOString();
 
+    // Auto-fill dive_id from active dive if not provided
+    let resolvedDiveId = dive_id ?? null;
+    if (!resolvedDiveId) {
+      const activeDive = db.prepare("SELECT id FROM dives WHERE status = 'active' ORDER BY id DESC LIMIT 1").get() as { id: number } | undefined;
+      if (activeDive) resolvedDiveId = activeDive.id;
+    }
+
     const stmt = db.prepare(
-      'INSERT INTO carts (cart_number, cart_type, diver_names, started_at) VALUES (?, ?, ?, ?)'
+      'INSERT INTO carts (cart_number, cart_type, diver_names, started_at, dive_id) VALUES (?, ?, ?, ?, ?)'
     );
-    const result = stmt.run(cart_number, cart_type, JSON.stringify(diver_names), now);
+    const result = stmt.run(cart_number, cart_type, JSON.stringify(diver_names), now, resolvedDiveId);
 
     // Create initial check-in with 5-min rounded deadline
     const rawDeadline = new Date(Date.now() + CHECKIN_INTERVAL_MINUTES * 60 * 1000);
@@ -145,8 +152,13 @@ router.post('/import', (req: Request, res: Response) => {
     const rawDeadline = new Date(Date.now() + CHECKIN_INTERVAL_MINUTES * 60 * 1000);
     const deadline = roundToNearest5Minutes(rawDeadline).toISOString();
 
+    // Auto-fill dive_id from active dive
+    let resolvedDiveId: number | null = null;
+    const activeDive = db.prepare("SELECT id FROM dives WHERE status = 'active' ORDER BY id DESC LIMIT 1").get() as { id: number } | undefined;
+    if (activeDive) resolvedDiveId = activeDive.id;
+
     const insertCart = db.prepare(
-      'INSERT INTO carts (cart_number, cart_type, diver_names, started_at) VALUES (?, ?, ?, ?)'
+      'INSERT INTO carts (cart_number, cart_type, diver_names, started_at, dive_id) VALUES (?, ?, ?, ?, ?)'
     );
     const insertCheckin = db.prepare(
       'INSERT INTO checkins (cart_id, checked_in_at, next_deadline) VALUES (?, ?, ?)'
@@ -160,7 +172,8 @@ router.post('/import', (req: Request, res: Response) => {
             cart.cart_number,
             cart.cart_type || 'pair',
             JSON.stringify(cart.diver_names),
-            now
+            now,
+            resolvedDiveId
           );
           insertCheckin.run(result.lastInsertRowid, now, deadline);
           created.push(Number(result.lastInsertRowid));

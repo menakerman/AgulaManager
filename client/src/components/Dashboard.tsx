@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useCartStore } from '../stores/cartStore';
 import { useAlertStore } from '../stores/alertStore';
+import { useDiveStore } from '../stores/diveStore';
 import type { CartWithTimer } from '../types';
 import CartGrid from './CartGrid';
 import CartForm from './CartForm';
 import CartImport from './CartImport';
 import SearchFilter from './SearchFilter';
+import DiveGate from './DiveGate';
+import DiveInfoBar from './DiveInfoBar';
 
 export default function Dashboard() {
   const { carts, loading, error, fetchCarts, filteredCarts } = useCartStore();
   const activeAlertCount = useAlertStore((s) => s.activeAlertCount);
+  const { dive, loading: diveLoading } = useDiveStore();
   const [showCartForm, setShowCartForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [editingCart, setEditingCart] = useState<CartWithTimer | null>(null);
@@ -33,8 +37,26 @@ export default function Dashboard() {
   const warningCarts = carts.filter((c) => c.timer_status === 'orange').length;
   const expiredCarts = carts.filter((c) => c.timer_status === 'expired').length;
 
+  if (diveLoading) {
+    return (
+      <div className="text-center py-16">
+        <svg className="animate-spin h-8 w-8 mx-auto text-primary-600" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        <p className="text-gray-500 mt-4">טוען...</p>
+      </div>
+    );
+  }
+
+  if (!dive) {
+    return <DiveGate />;
+  }
+
   return (
     <div className="space-y-6">
+      <DiveInfoBar />
+
       {/* Stats bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="card p-4 text-center">

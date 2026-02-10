@@ -5,12 +5,35 @@ export type CartStatus = 'active' | 'completed';
 export type EventType = 'warning' | 'overdue' | 'emergency';
 export type EventStatus = 'open' | 'resolved';
 export type TimerStatus = 'green' | 'orange' | 'red' | 'expired' | 'paused';
+export type TeamRole = 'חובש' | 'בקר' | 'פקח צולל';
+export type DiveStatus = 'active' | 'completed';
+
+export interface TeamMember {
+  role: TeamRole;
+  name: string;
+}
+
+export interface Dive {
+  id: number;
+  manager_name: string;
+  team_members: TeamMember[];
+  status: DiveStatus;
+  started_at: string;
+  ended_at: string | null;
+  created_at: string;
+}
+
+export interface CreateDiveRequest {
+  manager_name: string;
+  team_members?: TeamMember[];
+}
 
 export interface Cart {
   id: number;
   cart_number: number;
   cart_type: CartType;
   diver_names: string[];
+  dive_id: number | null;
   status: CartStatus;
   started_at: string;
   ended_at: string | null;
@@ -23,6 +46,7 @@ export interface CartWithTimer extends Cart {
   timer_status: TimerStatus;
   seconds_remaining: number;
   paused_at: string | null;
+  checkin_location: string | null;
 }
 
 export interface CheckIn {
@@ -75,6 +99,7 @@ export interface CreateCartRequest {
   cart_number: number;
   cart_type?: CartType;
   diver_names: string[];
+  dive_id?: number;
 }
 
 export interface UpdateCartRequest {

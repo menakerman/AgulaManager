@@ -25,6 +25,15 @@ export function getDatabase(): Database.Database {
     // Create schema
     createSchema(db);
 
+    // Migrations for existing databases
+    const columns = db.prepare("PRAGMA table_info(carts)").all() as Array<{ name: string }>;
+    if (!columns.some(c => c.name === 'checkin_location')) {
+      db.exec('ALTER TABLE carts ADD COLUMN checkin_location TEXT');
+    }
+    if (!columns.some(c => c.name === 'dive_id')) {
+      db.exec('ALTER TABLE carts ADD COLUMN dive_id INTEGER REFERENCES dives(id)');
+    }
+
     console.log(`Database initialized at ${DB_PATH} (WAL mode)`);
   }
 

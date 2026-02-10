@@ -45,14 +45,18 @@ class TimerService {
   getActiveCartsWithTimers(): CartWithTimer[] {
     const db = getDatabase();
 
+    // Only return carts belonging to the current active dive
+    const activeDive = db.prepare("SELECT id FROM dives WHERE status = 'active' ORDER BY id DESC LIMIT 1").get() as { id: number } | undefined;
+
     const carts = db.prepare(`
       SELECT c.*,
         (SELECT checked_in_at FROM checkins WHERE cart_id = c.id ORDER BY checked_in_at DESC LIMIT 1) as last_checkin,
         (SELECT next_deadline FROM checkins WHERE cart_id = c.id ORDER BY checked_in_at DESC LIMIT 1) as next_deadline
       FROM carts c
       WHERE c.status = 'active'
+        AND (c.dive_id = ? OR (c.dive_id IS NULL AND ? IS NULL))
       ORDER BY c.cart_number
-    `).all() as Array<{
+    `).all(activeDive?.id ?? null, activeDive?.id ?? null) as Array<{
       id: number;
       cart_number: number;
       cart_type: string;
@@ -61,9 +65,11 @@ class TimerService {
       started_at: string;
       ended_at: string | null;
       paused_at: string | null;
+      checkin_location: string | null;
       created_at: string;
       last_checkin: string | null;
       next_deadline: string | null;
+      dive_id: number | null;
     }>;
 
     const now = new Date();
@@ -87,6 +93,7 @@ class TimerService {
           cart_number: cart.cart_number,
           cart_type: cart.cart_type as CartWithTimer['cart_type'],
           diver_names: diverNames,
+          dive_id: cart.dive_id,
           status: cart.status as CartWithTimer['status'],
           started_at: cart.started_at,
           ended_at: cart.ended_at,
@@ -96,6 +103,7 @@ class TimerService {
           timer_status: 'paused' as TimerStatus,
           seconds_remaining: 0,
           paused_at: cart.paused_at,
+          checkin_location: cart.checkin_location,
         };
       }
 
@@ -126,6 +134,7 @@ class TimerService {
         cart_number: cart.cart_number,
         cart_type: cart.cart_type as CartWithTimer['cart_type'],
         diver_names: diverNames,
+        dive_id: cart.dive_id,
         status: cart.status as CartWithTimer['status'],
         started_at: cart.started_at,
         ended_at: cart.ended_at,
@@ -135,6 +144,7 @@ class TimerService {
         timer_status: timerStatus,
         seconds_remaining: Math.max(0, secondsRemaining),
         paused_at: cart.paused_at,
+        checkin_location: cart.checkin_location,
       };
     });
   }

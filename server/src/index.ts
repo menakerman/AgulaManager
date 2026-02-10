@@ -16,6 +16,7 @@ import checkinsRouter from './routes/checkins';
 import eventsRouter from './routes/events';
 import filesRouter from './routes/files';
 import reportsRouter from './routes/reports';
+import divesRouter from './routes/dives';
 
 const PORT = process.env.PORT || 3001;
 
@@ -47,6 +48,7 @@ app.use(auditLog);
 app.use('/uploads', express.static(path.join(__dirname, '..', 'data', 'uploads')));
 
 // API Routes
+app.use('/api/dives', divesRouter);
 app.use('/api/carts', cartsRouter);
 app.use('/api/carts', checkinsRouter);
 app.use('/api/events', eventsRouter);

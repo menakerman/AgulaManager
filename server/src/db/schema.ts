@@ -2,6 +2,16 @@ import Database from 'better-sqlite3';
 
 export function createSchema(db: Database.Database): void {
   db.exec(`
+    CREATE TABLE IF NOT EXISTS dives (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      manager_name TEXT NOT NULL,
+      team_members TEXT DEFAULT '[]',
+      status TEXT CHECK(status IN ('active', 'completed')) DEFAULT 'active',
+      started_at TEXT NOT NULL,
+      ended_at TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS carts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       cart_number INTEGER UNIQUE NOT NULL,
@@ -11,6 +21,7 @@ export function createSchema(db: Database.Database): void {
       started_at TEXT NOT NULL,
       ended_at TEXT,
       paused_at TEXT,
+      checkin_location TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     );
 

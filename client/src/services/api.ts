@@ -10,6 +10,8 @@ import type {
   UpdateEventRequest,
   Protocol,
   Attachment,
+  Dive,
+  CreateDiveRequest,
 } from '../types';
 
 const API_BASE = '/api';
@@ -27,6 +29,26 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 
   return res.json();
 }
+
+// Dives
+export const diveApi = {
+  getActiveDive: () => request<Dive>('/dives/active'),
+
+  createDive: (data: CreateDiveRequest) =>
+    request<Dive>('/dives', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  endDive: (id: number) =>
+    request<Dive>(`/dives/${id}/end`, { method: 'POST' }),
+
+  updateDive: (id: number, data: Partial<CreateDiveRequest>) =>
+    request<Dive>(`/dives/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+};
 
 // Carts
 export const api = {
