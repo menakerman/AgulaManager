@@ -10,6 +10,10 @@ node_modules/
 # Build output
 dist/
 build/
+shared/*.js
+shared/*.js.map
+shared/*.d.ts
+shared/*.d.ts.map
 
 # Database
 *.db
