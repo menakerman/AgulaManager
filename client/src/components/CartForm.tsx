@@ -9,22 +9,29 @@ interface CartFormProps {
 }
 
 export default function CartForm({ editCart, onClose }: CartFormProps) {
+  const { carts, createCart, editCart: updateCart } = useCartStore();
+  const dive = useDiveStore((s) => s.dive);
+
+  // Auto-increment: next number is max existing + 1, or 1 if no carts
+  const nextCartNumber = carts.length > 0
+    ? Math.max(...carts.map((c) => c.cart_number)) + 1
+    : 1;
+
   const [cartNumber, setCartNumber] = useState('');
   const [cartType, setCartType] = useState<CartType>('pair');
   const [diverNames, setDiverNames] = useState<string[]>(['', '']);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { createCart, editCart: updateCart } = useCartStore();
-  const dive = useDiveStore((s) => s.dive);
-
   useEffect(() => {
     if (editCart) {
       setCartNumber(String(editCart.cart_number));
       setCartType(editCart.cart_type);
       setDiverNames(editCart.diver_names);
+    } else {
+      setCartNumber(String(nextCartNumber));
     }
-  }, [editCart]);
+  }, [editCart, nextCartNumber]);
 
   const diverCount = { pair: 2, trio: 3, six: 6 }[cartType];
 
