@@ -78,5 +78,6 @@ export function createSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_events_status ON events(status);
     CREATE INDEX IF NOT EXISTS idx_carts_status ON carts(status);
     CREATE INDEX IF NOT EXISTS idx_attachments_cart_id ON attachments(cart_id);
+    CREATE INDEX IF NOT EXISTS idx_carts_dive_id ON carts(dive_id);
   `);
 }

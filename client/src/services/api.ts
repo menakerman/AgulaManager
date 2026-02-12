@@ -12,6 +12,8 @@ import type {
   Attachment,
   Dive,
   CreateDiveRequest,
+  DiveReportSummary,
+  DiveReportDetail,
 } from '../types';
 
 const API_BASE = '/api';
@@ -150,6 +152,12 @@ export const api = {
   // Reports
   getDailyReport: (date?: string) =>
     request<any>(`/reports/daily${date ? `?date=${date}` : ''}`),
+
+  getDiveReports: () => request<DiveReportSummary[]>('/reports/dives'),
+
+  getDiveReport: (id: number) => request<DiveReportDetail>(`/reports/dives/${id}`),
+
+  getDiveReportExportUrl: (id: number) => `${API_BASE}/reports/dives/${id}/export`,
 
   exportData: (format: string, date?: string) => {
     const params = new URLSearchParams({ format });

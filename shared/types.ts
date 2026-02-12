@@ -96,6 +96,51 @@ export interface Protocol {
   created_at: string;
 }
 
+export interface DiveReportSummary {
+  dive: Dive;
+  cart_count: number;
+  checkin_count: number;
+  event_count: number;
+  duration_minutes: number | null; // null if active
+}
+
+export interface DiveReportDetail {
+  dive: Dive;
+  summary: {
+    cart_count: number;
+    checkin_count: number;
+    event_count: number;
+    events_by_type: Record<string, number>;
+    duration_minutes: number | null;
+  };
+  carts: Array<{
+    id: number;
+    cart_number: number;
+    cart_type: number;
+    diver_names: string[];
+    status: string;
+    started_at: string;
+    ended_at: string | null;
+    checkin_count: number;
+    event_count: number;
+    last_checkin: string | null;
+  }>;
+  events: Array<{
+    id: number;
+    event_type: string;
+    status: string;
+    cart_number: number;
+    opened_at: string;
+    resolved_at: string | null;
+    notes: string[];
+  }>;
+  timeline: Array<{
+    timestamp: string;
+    type: string;
+    description: string;
+  }>;
+}
+
 // API request/response types
 export interface CreateCartRequest {
   cart_number: number;

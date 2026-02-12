@@ -26,6 +26,8 @@ export type {
   StartTimersRequest,
   ServerToClientEvents,
   ClientToServerEvents,
+  DiveReportSummary,
+  DiveReportDetail,
 } from 'shared/types';
 
 export {
