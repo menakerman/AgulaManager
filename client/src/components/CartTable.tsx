@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import type { CartWithTimer } from '../types';
+import { DEFAULT_DIVE_SETTINGS } from '../types';
 import { useTimer } from '../hooks/useTimer';
 import { useCartStore } from '../stores/cartStore';
+import { useDiveStore } from '../stores/diveStore';
 import CheckInButton from './CheckInButton';
 import { formatClockTime } from '../utils/time';
 
@@ -40,7 +42,8 @@ function CartTableRow({ cart, onEditCart, isSelected, onToggleSelect }: {
   const actionsRef = useRef<HTMLDivElement>(null);
   const isWaiting = cart.timer_status === 'waiting';
   const isPaused = cart.timer_status === 'paused';
-  const timer = useTimer(isPaused || isWaiting ? null : cart.next_deadline);
+  const diveSettings = useDiveStore((s) => s.dive?.settings) ?? DEFAULT_DIVE_SETTINGS;
+  const timer = useTimer(isPaused || isWaiting ? null : cart.next_deadline, diveSettings.agula_period_minutes, diveSettings.warning_minutes);
   const { endCart, deleteCart } = useCartStore();
 
   const liveStatus = isWaiting ? 'waiting' : isPaused ? 'paused' : timer.status;

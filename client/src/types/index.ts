@@ -7,6 +7,7 @@ export type {
   AuditLogEntry,
   Protocol,
   Dive,
+  DiveSettings,
   TeamMember,
   CartType,
   CartStatus,
@@ -31,6 +32,7 @@ export type {
 } from 'shared/types';
 
 export {
+  DEFAULT_DIVE_SETTINGS,
   CHECKIN_INTERVAL_MINUTES,
   WARNING_THRESHOLD_MINUTES,
   OVERDUE_THRESHOLD_MINUTES,

@@ -18,6 +18,7 @@ export interface Dive {
   name?: string;
   manager_name: string;
   team_members: TeamMember[];
+  settings: DiveSettings;
   status: DiveStatus;
   started_at: string;
   ended_at: string | null;
@@ -28,6 +29,7 @@ export interface CreateDiveRequest {
   manager_name: string;
   team_members?: TeamMember[];
   name?: string;
+  settings?: Partial<DiveSettings>;
 }
 
 export interface Cart {
@@ -204,7 +206,20 @@ export interface ClientToServerEvents {
   'cart:subscribe': () => void;
 }
 
-// Constants
+// Dive settings (per-dive configurable)
+export interface DiveSettings {
+  agula_period_minutes: number;   // default 60
+  warning_minutes: number;        // default 5
+  overdue_checklist: string[];    // default []
+}
+
+export const DEFAULT_DIVE_SETTINGS: DiveSettings = {
+  agula_period_minutes: 60,
+  warning_minutes: 5,
+  overdue_checklist: [],
+};
+
+// Constants (fallback defaults when no dive settings exist)
 export const CHECKIN_INTERVAL_MINUTES = 60;
 export const WARNING_THRESHOLD_MINUTES = 10; // Orange at 10 min remaining
 export const OVERDUE_THRESHOLD_MINUTES = 0;  // Red at 0 min remaining

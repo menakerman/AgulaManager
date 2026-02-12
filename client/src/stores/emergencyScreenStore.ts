@@ -23,7 +23,7 @@ interface EmergencyScreenState {
   sessions: EmergencySession[];
   activeSessionId: string | null;
 
-  startEmergency: (cartId: number, cartNumber: number, diverNames: string[]) => void;
+  startEmergency: (cartId: number, cartNumber: number, diverNames: string[], checklistItems?: string[]) => void;
   resolveEmergency: (sessionId: string) => void;
   toggleMinimize: (sessionId: string) => void;
   expandSession: (sessionId: string) => void;
@@ -39,11 +39,20 @@ export const useEmergencyScreenStore = create<EmergencyScreenState>()(
       sessions: [],
       activeSessionId: null,
 
-      startEmergency: (cartId, cartNumber, diverNames) => {
+      startEmergency: (cartId, cartNumber, diverNames, checklistItems) => {
         const existing = get().sessions.find(
           (s) => s.cartId === cartId && !s.resolved
         );
         if (existing) return;
+
+        const initialChecklist: ChecklistItem[] = (checklistItems ?? [])
+          .filter((t) => t.trim().length > 0)
+          .map((text) => ({
+            id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            text: text.trim(),
+            completed: false,
+            completedAt: null,
+          }));
 
         const session: EmergencySession = {
           id: `emergency-${cartId}-${Date.now()}`,
@@ -51,7 +60,7 @@ export const useEmergencyScreenStore = create<EmergencyScreenState>()(
           cartNumber,
           diverNames,
           triggeredAt: new Date().toISOString(),
-          checklist: [],
+          checklist: initialChecklist,
           minimized: false,
           resolved: false,
         };

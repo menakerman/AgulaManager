@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import { getDatabase } from '../db/database';
 import { alertService } from '../services/alertService';
 import type { CreateDiveRequest, Dive } from '../../../shared/types';
+import { DEFAULT_DIVE_SETTINGS } from '../../../shared/types';
+import { parseDiveSettings } from '../utils/diveSettings';
 
 const router = Router();
 
@@ -9,6 +11,7 @@ function parseDiveRow(row: any): Dive {
   return {
     ...row,
     team_members: JSON.parse(row.team_members || '[]'),
+    settings: parseDiveSettings(row.settings),
   };
 }
 
@@ -31,7 +34,7 @@ router.get('/active', (_req: Request, res: Response) => {
 // POST /api/dives - Start a new dive
 router.post('/', (req: Request, res: Response) => {
   try {
-    const { manager_name, team_members = [], name } = req.body as CreateDiveRequest;
+    const { manager_name, team_members = [], name, settings } = req.body as CreateDiveRequest;
 
     if (!manager_name || !manager_name.trim()) {
       res.status(400).json({ error: 'manager_name is required' });
@@ -62,9 +65,10 @@ router.post('/', (req: Request, res: Response) => {
     }
 
     const diveName = name?.trim() || null;
+    const mergedSettings = { ...DEFAULT_DIVE_SETTINGS, ...settings };
     const result = db.prepare(
-      'INSERT INTO dives (name, manager_name, team_members, started_at) VALUES (?, ?, ?, ?)'
-    ).run(diveName, manager_name.trim(), JSON.stringify(team_members), now);
+      'INSERT INTO dives (name, manager_name, team_members, settings, started_at) VALUES (?, ?, ?, ?, ?)'
+    ).run(diveName, manager_name.trim(), JSON.stringify(team_members), JSON.stringify(mergedSettings), now);
 
     const dive = db.prepare('SELECT * FROM dives WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(parseDiveRow(dive));
@@ -123,7 +127,7 @@ router.post('/:id/end', (req: Request, res: Response) => {
 router.put('/:id', (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { manager_name, team_members, name } = req.body as Partial<CreateDiveRequest>;
+    const { manager_name, team_members, name, settings } = req.body as Partial<CreateDiveRequest>;
     const db = getDatabase();
 
     const updates: string[] = [];
@@ -141,6 +145,22 @@ router.put('/:id', (req: Request, res: Response) => {
       updates.push('name = ?');
       values.push(name.trim() || null);
     }
+    if (settings !== undefined) {
+      // Check if settings are locked (any cart in this dive has a checkin)
+      const hasCheckin = db.prepare(
+        "SELECT 1 FROM checkins c JOIN carts ca ON c.cart_id = ca.id WHERE ca.dive_id = ? LIMIT 1"
+      ).get(id);
+      if (hasCheckin) {
+        res.status(409).json({ error: 'Settings are locked after timers have started' });
+        return;
+      }
+      const existing = parseDiveSettings(
+        (db.prepare('SELECT settings FROM dives WHERE id = ?').get(id) as any)?.settings
+      );
+      const merged = { ...existing, ...settings };
+      updates.push('settings = ?');
+      values.push(JSON.stringify(merged));
+    }
 
     if (updates.length === 0) {
       res.status(400).json({ error: 'No fields to update' });
@@ -155,6 +175,21 @@ router.put('/:id', (req: Request, res: Response) => {
   } catch (err) {
     console.error('Error updating dive:', err);
     res.status(500).json({ error: 'Failed to update dive' });
+  }
+});
+
+// GET /api/dives/:id/settings-locked - Check if dive settings are locked
+router.get('/:id/settings-locked', (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const db = getDatabase();
+    const hasCheckin = db.prepare(
+      "SELECT 1 FROM checkins c JOIN carts ca ON c.cart_id = ca.id WHERE ca.dive_id = ? LIMIT 1"
+    ).get(id);
+    res.json({ locked: !!hasCheckin });
+  } catch (err) {
+    console.error('Error checking settings lock:', err);
+    res.status(500).json({ error: 'Failed to check settings lock' });
   }
 });
 

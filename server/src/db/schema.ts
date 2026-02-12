@@ -7,6 +7,7 @@ export function createSchema(db: Database.Database): void {
       name TEXT,
       manager_name TEXT NOT NULL,
       team_members TEXT DEFAULT '[]',
+      settings TEXT DEFAULT '{}',
       status TEXT CHECK(status IN ('active', 'completed')) DEFAULT 'active',
       started_at TEXT NOT NULL,
       ended_at TEXT,
@@ -80,4 +81,11 @@ export function createSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_attachments_cart_id ON attachments(cart_id);
     CREATE INDEX IF NOT EXISTS idx_carts_dive_id ON carts(dive_id);
   `);
+
+  // Migration: add settings column to existing dives tables
+  try {
+    db.exec("ALTER TABLE dives ADD COLUMN settings TEXT DEFAULT '{}'");
+  } catch {
+    // Column already exists — ignore
+  }
 }

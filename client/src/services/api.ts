@@ -50,6 +50,9 @@ export const diveApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+
+  getSettingsLocked: (id: number) =>
+    request<{ locked: boolean }>(`/dives/${id}/settings-locked`),
 };
 
 // Carts

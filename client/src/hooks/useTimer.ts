@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { TimerStatus } from '../types';
-import { WARNING_THRESHOLD_MINUTES } from '../types';
 
 interface TimerData {
   minutes: number;
@@ -11,7 +10,7 @@ interface TimerData {
   percentRemaining: number;
 }
 
-export function useTimer(deadline: string | null, intervalMinutes: number = 60): TimerData {
+export function useTimer(deadline: string | null, intervalMinutes: number = 60, warningMinutes: number = 5): TimerData {
   const calcTimer = useCallback((): TimerData => {
     if (!deadline) {
       return { minutes: 0, seconds: 0, totalSeconds: 0, status: 'green', displayTime: '--:--', percentRemaining: 100 };
@@ -43,7 +42,7 @@ export function useTimer(deadline: string | null, intervalMinutes: number = 60):
     let status: TimerStatus = 'green';
     if (totalSecs <= 0) {
       status = 'expired';
-    } else if (totalSecs <= WARNING_THRESHOLD_MINUTES * 60) {
+    } else if (totalSecs <= warningMinutes * 60) {
       status = 'orange';
     }
 
@@ -55,7 +54,7 @@ export function useTimer(deadline: string | null, intervalMinutes: number = 60):
       displayTime: `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`,
       percentRemaining: Math.min(100, (totalSecs / totalIntervalSeconds) * 100),
     };
-  }, [deadline, intervalMinutes]);
+  }, [deadline, intervalMinutes, warningMinutes]);
 
   const [timer, setTimer] = useState<TimerData>(calcTimer);
 

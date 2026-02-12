@@ -3,6 +3,7 @@ import { getDatabase } from '../db/database';
 import { alertService } from './alertService';
 import type { CartWithTimer, TimerStatus } from '../../../shared/types';
 import { CHECKIN_INTERVAL_MINUTES, WARNING_THRESHOLD_MINUTES } from '../../../shared/types';
+import { parseDiveSettings } from '../utils/diveSettings';
 
 class TimerService {
   private io: SocketServer | null = null;
@@ -46,7 +47,8 @@ class TimerService {
     const db = getDatabase();
 
     // Only return carts belonging to the current active dive
-    const activeDive = db.prepare("SELECT id FROM dives WHERE status = 'active' ORDER BY id DESC LIMIT 1").get() as { id: number } | undefined;
+    const activeDive = db.prepare("SELECT id, settings FROM dives WHERE status = 'active' ORDER BY id DESC LIMIT 1").get() as { id: number; settings: string } | undefined;
+    const diveSettings = parseDiveSettings(activeDive?.settings);
 
     const carts = db.prepare(`
       SELECT c.*,
@@ -114,7 +116,7 @@ class TimerService {
 
         const deadline = cart.next_deadline
           ? new Date(cart.next_deadline)
-          : new Date(new Date(cart.started_at).getTime() + CHECKIN_INTERVAL_MINUTES * 60 * 1000);
+          : new Date(new Date(cart.started_at).getTime() + diveSettings.agula_period_minutes * 60 * 1000);
 
         return {
           id: cart.id,
@@ -137,14 +139,14 @@ class TimerService {
 
       const deadline = cart.next_deadline
         ? new Date(cart.next_deadline)
-        : new Date(new Date(cart.started_at).getTime() + CHECKIN_INTERVAL_MINUTES * 60 * 1000);
+        : new Date(new Date(cart.started_at).getTime() + diveSettings.agula_period_minutes * 60 * 1000);
 
       const secondsRemaining = Math.floor((deadline.getTime() - now.getTime()) / 1000);
 
       let timerStatus: TimerStatus;
       if (secondsRemaining <= 0) {
         timerStatus = 'expired';
-      } else if (secondsRemaining <= WARNING_THRESHOLD_MINUTES * 60) {
+      } else if (secondsRemaining <= diveSettings.warning_minutes * 60) {
         timerStatus = 'orange';
       } else {
         timerStatus = 'green';

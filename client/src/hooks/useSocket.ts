@@ -3,6 +3,7 @@ import { getSocket } from '../services/socket';
 import { useCartStore } from '../stores/cartStore';
 import { useAlertStore } from '../stores/alertStore';
 import { useEmergencyScreenStore } from '../stores/emergencyScreenStore';
+import { useDiveStore } from '../stores/diveStore';
 
 export function useSocket(): void {
   const setCarts = useCartStore((s) => s.setCarts);
@@ -43,7 +44,8 @@ export function useSocket(): void {
 
     socket.on('alert:overdue', (cart) => {
       addAlert('overdue', cart);
-      useEmergencyScreenStore.getState().startEmergency(cart.id, cart.cart_number, cart.diver_names);
+      const overdueChecklist = useDiveStore.getState().dive?.settings?.overdue_checklist;
+      useEmergencyScreenStore.getState().startEmergency(cart.id, cart.cart_number, cart.diver_names, overdueChecklist);
     });
 
     socket.on('alert:emergency', (cart) => {

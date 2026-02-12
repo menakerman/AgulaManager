@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { getDatabase } from '../db/database';
 import type { DiveReportSummary, DiveReportDetail } from '../../../shared/types';
+import { parseDiveSettings } from '../utils/diveSettings';
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.get('/dives', (_req: Request, res: Response) => {
         name: d.name || undefined,
         manager_name: d.manager_name,
         team_members: JSON.parse(d.team_members || '[]'),
+        settings: parseDiveSettings(d.settings),
         status: d.status,
         started_at: d.started_at,
         ended_at: d.ended_at,
@@ -61,6 +63,7 @@ router.get('/dives/:id', (req: Request, res: Response) => {
       name: diveRow.name || undefined,
       manager_name: diveRow.manager_name,
       team_members: JSON.parse(diveRow.team_members || '[]'),
+      settings: parseDiveSettings(diveRow.settings),
       status: diveRow.status,
       started_at: diveRow.started_at,
       ended_at: diveRow.ended_at,

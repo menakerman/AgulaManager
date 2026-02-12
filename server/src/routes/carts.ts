@@ -2,8 +2,9 @@ import { Router, Request, Response } from 'express';
 import { getDatabase } from '../db/database';
 import { timerService } from '../services/timerService';
 import { alertService } from '../services/alertService';
-import { CHECKIN_INTERVAL_MINUTES, roundToNearest5Minutes } from '../../../shared/types';
+import { roundToNearest5Minutes } from '../../../shared/types';
 import type { CreateCartRequest, UpdateCartRequest, StartTimersRequest } from '../../../shared/types';
+import { getActiveDiveSettings } from '../utils/diveSettings';
 
 const router = Router();
 
@@ -231,7 +232,8 @@ router.post('/start-timers', (req: Request, res: Response) => {
 
     const db = getDatabase();
     const now = new Date().toISOString();
-    const rawDeadline = new Date(Date.now() + CHECKIN_INTERVAL_MINUTES * 60 * 1000);
+    const diveSettings = getActiveDiveSettings();
+    const rawDeadline = new Date(Date.now() + diveSettings.agula_period_minutes * 60 * 1000);
     const deadline = roundToNearest5Minutes(rawDeadline).toISOString();
 
     const insertCheckin = db.prepare(

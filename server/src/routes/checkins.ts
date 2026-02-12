@@ -2,8 +2,9 @@ import { Router, Request, Response } from 'express';
 import { getDatabase } from '../db/database';
 import { timerService } from '../services/timerService';
 import { alertService } from '../services/alertService';
-import { CHECKIN_INTERVAL_MINUTES, roundToNearest5Minutes } from '../../../shared/types';
+import { roundToNearest5Minutes } from '../../../shared/types';
 import type { CheckInRequest, ResetTimerRequest } from '../../../shared/types';
+import { getDiveSettingsForCart } from '../utils/diveSettings';
 
 const router = Router();
 
@@ -65,8 +66,9 @@ router.post('/:id/newround', (req: Request, res: Response) => {
       return;
     }
 
+    const diveSettings = getDiveSettingsForCart(Number(id));
     const now = new Date();
-    const rawDeadline = new Date(now.getTime() + CHECKIN_INTERVAL_MINUTES * 60 * 1000);
+    const rawDeadline = new Date(now.getTime() + diveSettings.agula_period_minutes * 60 * 1000);
     const deadline = roundToNearest5Minutes(rawDeadline);
 
     // Record the check-in with rounded deadline
@@ -114,8 +116,9 @@ router.post('/:id/reset', (req: Request, res: Response) => {
       return;
     }
 
+    const diveSettings = getDiveSettingsForCart(Number(id));
     const now = new Date();
-    const rawDeadline = new Date(now.getTime() + CHECKIN_INTERVAL_MINUTES * 60 * 1000);
+    const rawDeadline = new Date(now.getTime() + diveSettings.agula_period_minutes * 60 * 1000);
     const deadline = roundToNearest5Minutes(rawDeadline);
 
     db.prepare(
