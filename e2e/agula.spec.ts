@@ -27,7 +27,7 @@ async function ensureActiveDive(request: any): Promise<number> {
 // Helper: create a cart and start its timer via API
 async function createAndStartCart(request: any, num: number, diverNames: string[]): Promise<any> {
   const createRes = await request.post(`${BASE_URL}/api/carts`, {
-    data: { cart_number: num, cart_type: 'pair', diver_names: diverNames },
+    data: { cart_number: num, cart_type: 2, diver_names: diverNames },
   });
   const cart = await createRes.json();
   await request.post(`${BASE_URL}/api/carts/start-timers`, {
@@ -63,7 +63,7 @@ test.describe('Agula Manager - Dive Flow', () => {
   test('should show DiveGate when no active dive', async ({ page }) => {
     await page.goto(BASE_URL);
     await expect(page.getByText('התחל צלילה')).toBeVisible();
-    await expect(page.getByText('מנהל צלילה')).toBeVisible();
+    await expect(page.getByPlaceholder('שם מנהל הצלילה')).toBeVisible();
   });
 
   test('should start a dive and show dashboard', async ({ page }) => {
@@ -197,7 +197,7 @@ test.describe('Agula Manager - Full Flow', () => {
     await page.getByRole('button', { name: 'הוסף עגלה' }).click();
 
     await expect(page.getByText(`#${num}`)).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText('שלישייה')).toBeVisible();
+    await expect(page.getByText('3 צוללנים')).toBeVisible();
   });
 
   test('should toggle dark mode', async ({ page }) => {
@@ -263,7 +263,7 @@ test.describe('Agula Manager - Full Flow', () => {
   test('new cart shows waiting state', async ({ page }) => {
     const num = nextCartNum();
     await page.request.post(`${BASE_URL}/api/carts`, {
-      data: { cart_number: num, cart_type: 'pair', diver_names: ['ענבר', 'נועם'] },
+      data: { cart_number: num, cart_type: 2, diver_names: ['ענבר', 'נועם'] },
     });
 
     await page.goto(BASE_URL);
@@ -275,7 +275,7 @@ test.describe('Agula Manager - Full Flow', () => {
   test('start timer from waiting state via UI', async ({ page }) => {
     const num = nextCartNum();
     await page.request.post(`${BASE_URL}/api/carts`, {
-      data: { cart_number: num, cart_type: 'pair', diver_names: ['ליאור', 'עדי'] },
+      data: { cart_number: num, cart_type: 2, diver_names: ['ליאור', 'עדי'] },
     });
 
     await page.goto(BASE_URL);
