@@ -22,6 +22,7 @@ export default function CartCard({ cart, onEdit, isSelected, onToggleSelect }: C
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetReason, setResetReason] = useState('');
   const [showActions, setShowActions] = useState(false);
+  const [showStatusInfo, setShowStatusInfo] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [locationModalValue, setLocationModalValue] = useState('');
   const [showPostStartLocation, setShowPostStartLocation] = useState(false);
@@ -137,11 +138,7 @@ export default function CartCard({ cart, onEdit, isSelected, onToggleSelect }: C
           paused: '',
         } as Record<string, string>)[timer.status];
 
-  const cartTypeLabel = {
-    pair: 'זוג',
-    trio: 'שלישייה',
-    six: 'שישייה',
-  }[cart.cart_type];
+  const cartTypeLabel = `${cart.cart_type} צוללנים`;
 
   const handleReset = async () => {
     if (!resetReason.trim()) return;

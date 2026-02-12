@@ -34,6 +34,12 @@ export function getDatabase(): Database.Database {
       db.exec('ALTER TABLE carts ADD COLUMN dive_id INTEGER REFERENCES dives(id)');
     }
 
+    // Add name column to dives table
+    const diveColumns = db.prepare("PRAGMA table_info(dives)").all() as Array<{ name: string }>;
+    if (!diveColumns.some(c => c.name === 'name')) {
+      db.exec('ALTER TABLE dives ADD COLUMN name TEXT');
+    }
+
     // Migrate unique constraint from cart_number alone to (cart_number, dive_id)
     const indexes = db.prepare("PRAGMA index_list(carts)").all() as Array<{ name: string; unique: number }>;
     const hasOldUnique = indexes.some(idx => {
@@ -50,7 +56,7 @@ export function getDatabase(): Database.Database {
         CREATE TABLE carts_new (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           cart_number INTEGER NOT NULL,
-          cart_type TEXT CHECK(cart_type IN ('pair', 'trio', 'six')) DEFAULT 'pair',
+          cart_type INTEGER CHECK(cart_type BETWEEN 2 AND 8) DEFAULT 2,
           diver_names TEXT NOT NULL,
           dive_id INTEGER REFERENCES dives(id),
           status TEXT CHECK(status IN ('active', 'completed')) DEFAULT 'active',
@@ -61,7 +67,39 @@ export function getDatabase(): Database.Database {
           created_at TEXT DEFAULT (datetime('now')),
           UNIQUE(cart_number, dive_id)
         );
-        INSERT INTO carts_new SELECT id, cart_number, cart_type, diver_names, dive_id, status, started_at, ended_at, paused_at, checkin_location, created_at FROM carts;
+        INSERT INTO carts_new SELECT id, cart_number,
+          CASE cart_type WHEN 'pair' THEN 2 WHEN 'trio' THEN 3 WHEN 'six' THEN 6 ELSE cart_type END,
+          diver_names, dive_id, status, started_at, ended_at, paused_at, checkin_location, created_at FROM carts;
+        DROP TABLE carts;
+        ALTER TABLE carts_new RENAME TO carts;
+        CREATE INDEX IF NOT EXISTS idx_carts_status ON carts(status);
+      `);
+      db.pragma('foreign_keys = ON');
+    }
+
+    // Migrate cart_type from text ('pair','trio','six') to integer (2,3,6)
+    const cartTypeCol = columns.find(c => c.name === 'cart_type') as { name: string; type: string } | undefined;
+    if (cartTypeCol && (cartTypeCol as any).type === 'TEXT') {
+      db.pragma('foreign_keys = OFF');
+      db.exec(`DROP TABLE IF EXISTS carts_new`);
+      db.exec(`
+        CREATE TABLE carts_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          cart_number INTEGER NOT NULL,
+          cart_type INTEGER CHECK(cart_type BETWEEN 2 AND 8) DEFAULT 2,
+          diver_names TEXT NOT NULL,
+          dive_id INTEGER REFERENCES dives(id),
+          status TEXT CHECK(status IN ('active', 'completed')) DEFAULT 'active',
+          started_at TEXT NOT NULL,
+          ended_at TEXT,
+          paused_at TEXT,
+          checkin_location TEXT,
+          created_at TEXT DEFAULT (datetime('now')),
+          UNIQUE(cart_number, dive_id)
+        );
+        INSERT INTO carts_new SELECT id, cart_number,
+          CASE cart_type WHEN 'pair' THEN 2 WHEN 'trio' THEN 3 WHEN 'six' THEN 6 ELSE 2 END,
+          diver_names, dive_id, status, started_at, ended_at, paused_at, checkin_location, created_at FROM carts;
         DROP TABLE carts;
         ALTER TABLE carts_new RENAME TO carts;
         CREATE INDEX IF NOT EXISTS idx_carts_status ON carts(status);

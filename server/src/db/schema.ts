@@ -4,6 +4,7 @@ export function createSchema(db: Database.Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS dives (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
       manager_name TEXT NOT NULL,
       team_members TEXT DEFAULT '[]',
       status TEXT CHECK(status IN ('active', 'completed')) DEFAULT 'active',
@@ -15,7 +16,7 @@ export function createSchema(db: Database.Database): void {
     CREATE TABLE IF NOT EXISTS carts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       cart_number INTEGER NOT NULL,
-      cart_type TEXT CHECK(cart_type IN ('pair', 'trio', 'six')) DEFAULT 'pair',
+      cart_type INTEGER CHECK(cart_type BETWEEN 2 AND 8) DEFAULT 2,
       diver_names TEXT NOT NULL,
       dive_id INTEGER REFERENCES dives(id),
       status TEXT CHECK(status IN ('active', 'completed')) DEFAULT 'active',

@@ -34,10 +34,7 @@ export default function CartImport({ onClose }: CartImportProps) {
       const diverNames = parts.slice(1).filter((n) => n);
       if (diverNames.length === 0) continue;
 
-      let cartType: 'pair' | 'trio' | 'six' = 'pair';
-      if (diverNames.length >= 6) cartType = 'six';
-      else if (diverNames.length >= 3) cartType = 'trio';
-
+      const cartType = Math.min(8, Math.max(2, diverNames.length));
       carts.push({ cart_number: cartNumber, cart_type: cartType, diver_names: diverNames });
     }
 

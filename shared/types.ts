@@ -1,6 +1,6 @@
 // Shared types between client and server
 
-export type CartType = 'pair' | 'trio' | 'six';
+export type CartType = number; // 2–8 divers
 export type CartStatus = 'active' | 'completed';
 export type EventType = 'warning' | 'overdue' | 'emergency';
 export type EventStatus = 'open' | 'resolved';
@@ -15,6 +15,7 @@ export interface TeamMember {
 
 export interface Dive {
   id: number;
+  name?: string;
   manager_name: string;
   team_members: TeamMember[];
   status: DiveStatus;
@@ -26,6 +27,7 @@ export interface Dive {
 export interface CreateDiveRequest {
   manager_name: string;
   team_members?: TeamMember[];
+  name?: string;
 }
 
 export interface Cart {

@@ -59,7 +59,7 @@ class TimerService {
     `).all(activeDive?.id ?? null, activeDive?.id ?? null) as Array<{
       id: number;
       cart_number: number;
-      cart_type: string;
+      cart_type: number;
       diver_names: string;
       status: string;
       started_at: string;
@@ -87,7 +87,7 @@ class TimerService {
         return {
           id: cart.id,
           cart_number: cart.cart_number,
-          cart_type: cart.cart_type as CartWithTimer['cart_type'],
+          cart_type: cart.cart_type,
           diver_names: diverNames,
           dive_id: cart.dive_id,
           status: cart.status as CartWithTimer['status'],
@@ -119,7 +119,7 @@ class TimerService {
         return {
           id: cart.id,
           cart_number: cart.cart_number,
-          cart_type: cart.cart_type as CartWithTimer['cart_type'],
+          cart_type: cart.cart_type,
           diver_names: diverNames,
           dive_id: cart.dive_id,
           status: cart.status as CartWithTimer['status'],
@@ -160,7 +160,7 @@ class TimerService {
       return {
         id: cart.id,
         cart_number: cart.cart_number,
-        cart_type: cart.cart_type as CartWithTimer['cart_type'],
+        cart_type: cart.cart_type,
         diver_names: diverNames,
         dive_id: cart.dive_id,
         status: cart.status as CartWithTimer['status'],

@@ -63,11 +63,11 @@ describe('Carts API', () => {
 
     const res = await request(a)
       .put(`/api/carts/${cartId}`)
-      .send({ diver_names: ['X', 'Y'], cart_type: 'trio' });
+      .send({ diver_names: ['X', 'Y'], cart_type: 3 });
 
     expect(res.status).toBe(200);
     expect(res.body.diver_names).toEqual(['X', 'Y']);
-    expect(res.body.cart_type).toBe('trio');
+    expect(res.body.cart_type).toBe(3);
   });
 
   it('DELETE /api/carts/:id — deletes cart and cascading records', async () => {

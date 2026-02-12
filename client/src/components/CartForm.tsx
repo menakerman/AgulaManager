@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { CartWithTimer, CartType } from '../types';
+import type { CartWithTimer } from '../types';
 import { useCartStore } from '../stores/cartStore';
 import { useDiveStore } from '../stores/diveStore';
 
@@ -18,7 +18,7 @@ export default function CartForm({ editCart, onClose }: CartFormProps) {
     : 1;
 
   const [cartNumber, setCartNumber] = useState('');
-  const [cartType, setCartType] = useState<CartType>('pair');
+  const [cartType, setCartType] = useState<number>(2);
   const [diverNames, setDiverNames] = useState<string[]>(['', '']);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -33,15 +33,13 @@ export default function CartForm({ editCart, onClose }: CartFormProps) {
     }
   }, [editCart, nextCartNumber]);
 
-  const diverCount = { pair: 2, trio: 3, six: 6 }[cartType];
-
   useEffect(() => {
     setDiverNames((prev) => {
       const newNames = [...prev];
-      while (newNames.length < diverCount) newNames.push('');
-      return newNames.slice(0, diverCount);
+      while (newNames.length < cartType) newNames.push('');
+      return newNames.slice(0, cartType);
     });
-  }, [cartType, diverCount]);
+  }, [cartType]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,22 +93,25 @@ export default function CartForm({ editCart, onClose }: CartFormProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">סוג</label>
-            <div className="flex gap-2">
-              {([['pair', 'זוג (2)'], ['trio', 'שלישייה (3)'], ['six', 'שישייה (6)']] as const).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setCartType(value)}
-                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                    cartType === value
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+            <label className="block text-sm font-medium mb-1">מספר צוללנים</label>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setCartType((t) => Math.max(2, t - 1))}
+                disabled={cartType <= 2}
+                className="w-10 h-10 rounded-lg text-lg font-bold bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-30 transition-colors"
+              >
+                -
+              </button>
+              <span className="text-2xl font-bold min-w-[2ch] text-center">{cartType}</span>
+              <button
+                type="button"
+                onClick={() => setCartType((t) => Math.min(8, t + 1))}
+                disabled={cartType >= 8}
+                className="w-10 h-10 rounded-lg text-lg font-bold bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-30 transition-colors"
+              >
+                +
+              </button>
             </div>
           </div>
 

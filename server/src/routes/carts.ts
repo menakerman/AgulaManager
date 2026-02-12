@@ -21,7 +21,8 @@ router.get('/', (_req: Request, res: Response) => {
 // POST /api/carts - Create new cart
 router.post('/', (req: Request, res: Response) => {
   try {
-    const { cart_number, cart_type = 'pair', diver_names, dive_id } = req.body as CreateCartRequest;
+    const { cart_number, diver_names, dive_id } = req.body as CreateCartRequest;
+    const cart_type = req.body.cart_type ?? Math.min(8, Math.max(2, Array.isArray(diver_names) ? diver_names.length : 2));
 
     if (!cart_number || !diver_names || !Array.isArray(diver_names) || diver_names.length === 0) {
       res.status(400).json({ error: 'cart_number and diver_names are required' });
@@ -183,9 +184,10 @@ router.post('/import', (req: Request, res: Response) => {
       const created: number[] = [];
       for (const cart of cartList) {
         try {
+          const cartType = cart.cart_type ?? Math.min(8, Math.max(2, cart.diver_names.length));
           const result = insertCart.run(
             cart.cart_number,
-            cart.cart_type || 'pair',
+            cartType,
             JSON.stringify(cart.diver_names),
             now,
             resolvedDiveId
@@ -272,6 +274,37 @@ router.post('/start-timers', (req: Request, res: Response) => {
   } catch (err) {
     console.error('Error starting timers:', err);
     res.status(500).json({ error: 'Failed to start timers' });
+  }
+});
+
+// GET /api/carts/:id/timeline - Full history timeline for a cart
+router.get('/:id/timeline', (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const db = getDatabase();
+
+    const cart = db.prepare('SELECT * FROM carts WHERE id = ?').get(id) as any;
+    if (!cart) {
+      res.status(404).json({ error: 'Cart not found' });
+      return;
+    }
+    cart.diver_names = JSON.parse(cart.diver_names);
+
+    const checkins = db.prepare(
+      'SELECT * FROM checkins WHERE cart_id = ? ORDER BY checked_in_at ASC'
+    ).all(id);
+
+    const events = (db.prepare(
+      'SELECT * FROM events WHERE cart_id = ? ORDER BY opened_at ASC'
+    ).all(id) as any[]).map(e => ({
+      ...e,
+      notes: typeof e.notes === 'string' ? JSON.parse(e.notes) : e.notes ?? [],
+    }));
+
+    res.json({ cart, checkins, events });
+  } catch (err) {
+    console.error('Error fetching cart timeline:', err);
+    res.status(500).json({ error: 'Failed to fetch timeline' });
   }
 });
 
