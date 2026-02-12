@@ -51,9 +51,9 @@ export default function CartForm({ editCart, onClose }: CartFormProps) {
       return;
     }
 
-    const names = diverNames.filter((n) => n.trim());
-    if (names.length === 0) {
-      setError('יש להזין לפחות שם צוללן אחד');
+    const names = diverNames.map((n) => n.trim());
+    if (names.some((n) => !n)) {
+      setError('יש להזין שמות לכל הצוללנים');
       return;
     }
 
@@ -93,22 +93,43 @@ export default function CartForm({ editCart, onClose }: CartFormProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">מספר צוללנים</label>
-            <div className="flex items-center gap-3">
+            <label className="block text-sm font-medium mb-1">סוג עגלה</label>
+            <div className="flex gap-2 mb-2">
+              {([
+                [2, 'זוג (2)'],
+                [3, 'שלישייה (3)'],
+                [6, 'שישייה (6)'],
+              ] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setCartType(value)}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                    cartType === value
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <span>אחר:</span>
               <button
                 type="button"
                 onClick={() => setCartType((t) => Math.max(2, t - 1))}
                 disabled={cartType <= 2}
-                className="w-10 h-10 rounded-lg text-lg font-bold bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-30 transition-colors"
+                className="w-8 h-8 rounded-lg text-base font-bold bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-30 transition-colors"
               >
                 -
               </button>
-              <span className="text-2xl font-bold min-w-[2ch] text-center">{cartType}</span>
+              <span className="text-lg font-bold min-w-[2ch] text-center text-gray-800 dark:text-gray-200">{cartType}</span>
               <button
                 type="button"
                 onClick={() => setCartType((t) => Math.min(8, t + 1))}
                 disabled={cartType >= 8}
-                className="w-10 h-10 rounded-lg text-lg font-bold bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-30 transition-colors"
+                className="w-8 h-8 rounded-lg text-base font-bold bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-30 transition-colors"
               >
                 +
               </button>
@@ -130,6 +151,7 @@ export default function CartForm({ editCart, onClose }: CartFormProps) {
                   }}
                   placeholder={`צוללן ${i + 1}`}
                   className="input-field"
+                  required
                 />
               ))}
             </div>
