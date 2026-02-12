@@ -11,17 +11,13 @@ const TEAM_ROLES: { value: TeamRole; label: string }[] = [
 export default function DiveGate() {
   const startDive = useDiveStore((s) => s.startDive);
   const [managerName, setManagerName] = useState('');
+  const [diveName, setDiveName] = useState('');
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const addTeamMember = () => {
-    // Find the first role not already used
-    const usedRoles = new Set(teamMembers.map((m) => m.role));
-    const nextRole = TEAM_ROLES.find((r) => !usedRoles.has(r.value));
-    if (nextRole) {
-      setTeamMembers([...teamMembers, { role: nextRole.value, name: '' }]);
-    }
+    setTeamMembers([...teamMembers, { role: 'חובש', name: '' }]);
   };
 
   const removeTeamMember = (index: number) => {
@@ -55,15 +51,13 @@ export default function DiveGate() {
       await startDive({
         manager_name: managerName.trim(),
         team_members: validMembers,
+        name: diveName.trim() || undefined,
       });
     } catch (err: any) {
       setError(err.message || 'שגיאה בהתחלת צלילה');
     }
     setLoading(false);
   };
-
-  const usedRoles = new Set(teamMembers.map((m) => m.role));
-  const canAddMore = teamMembers.length < TEAM_ROLES.length;
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center">
@@ -93,17 +87,26 @@ export default function DiveGate() {
           </div>
 
           <div>
+            <label className="block text-sm font-medium mb-1">שם צלילה (אופציונלי)</label>
+            <input
+              type="text"
+              value={diveName}
+              onChange={(e) => setDiveName(e.target.value)}
+              className="input-field"
+              placeholder="שם הצלילה"
+            />
+          </div>
+
+          <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium">צוות (אופציונלי)</label>
-              {canAddMore && (
-                <button
-                  type="button"
-                  onClick={addTeamMember}
-                  className="text-sm text-primary-600 dark:text-primary-400 hover:underline"
-                >
-                  + הוסף איש צוות
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={addTeamMember}
+                className="text-sm text-primary-600 dark:text-primary-400 hover:underline"
+              >
+                + הוסף איש צוות
+              </button>
             </div>
 
             {teamMembers.length === 0 && (
@@ -120,9 +123,7 @@ export default function DiveGate() {
                     onChange={(e) => updateTeamMember(i, 'role', e.target.value)}
                     className="input-field w-36 shrink-0"
                   >
-                    {TEAM_ROLES.filter(
-                      (r) => r.value === member.role || !usedRoles.has(r.value)
-                    ).map((r) => (
+                    {TEAM_ROLES.map((r) => (
                       <option key={r.value} value={r.value}>
                         {r.label}
                       </option>

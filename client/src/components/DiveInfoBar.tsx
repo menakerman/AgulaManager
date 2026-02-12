@@ -17,6 +17,7 @@ export default function DiveInfoBar() {
   const [showEdit, setShowEdit] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [editManager, setEditManager] = useState('');
+  const [editDiveName, setEditDiveName] = useState('');
   const [editMembers, setEditMembers] = useState<TeamMember[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -24,6 +25,7 @@ export default function DiveInfoBar() {
 
   const handleStartEdit = () => {
     setEditManager(dive.manager_name);
+    setEditDiveName(dive.name || '');
     setEditMembers([...dive.team_members]);
     setShowEdit(true);
   };
@@ -34,6 +36,7 @@ export default function DiveInfoBar() {
       await updateDive({
         manager_name: editManager.trim(),
         team_members: editMembers.filter((m) => m.name.trim()),
+        name: editDiveName.trim() || undefined,
       });
       setShowEdit(false);
     } catch (err) {
@@ -53,20 +56,19 @@ export default function DiveInfoBar() {
   };
 
   const addEditMember = () => {
-    const usedRoles = new Set(editMembers.map((m) => m.role));
-    const nextRole = TEAM_ROLES.find((r) => !usedRoles.has(r.value));
-    if (nextRole) {
-      setEditMembers([...editMembers, { role: nextRole.value, name: '' }]);
-    }
+    setEditMembers([...editMembers, { role: 'חובש', name: '' }]);
   };
-
-  const usedEditRoles = new Set(editMembers.map((m) => m.role));
 
   return (
     <>
       <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-xl p-4 mb-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
+            {dive.name && (
+              <span className="font-semibold text-primary-700 dark:text-primary-300">
+                {dive.name} |
+              </span>
+            )}
             <span className="font-semibold text-primary-700 dark:text-primary-300">
               מנהל צלילה: {dive.manager_name}
             </span>
@@ -130,17 +132,25 @@ export default function DiveInfoBar() {
                 />
               </div>
               <div>
+                <label className="block text-sm font-medium mb-1">שם צלילה (אופציונלי)</label>
+                <input
+                  type="text"
+                  value={editDiveName}
+                  onChange={(e) => setEditDiveName(e.target.value)}
+                  className="input-field"
+                  placeholder="שם הצלילה"
+                />
+              </div>
+              <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-medium">צוות</label>
-                  {editMembers.length < TEAM_ROLES.length && (
-                    <button
-                      type="button"
-                      onClick={addEditMember}
-                      className="text-sm text-primary-600 dark:text-primary-400 hover:underline"
-                    >
-                      + הוסף
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={addEditMember}
+                    className="text-sm text-primary-600 dark:text-primary-400 hover:underline"
+                  >
+                    + הוסף
+                  </button>
                 </div>
                 <div className="space-y-2">
                   {editMembers.map((member, i) => (
@@ -154,9 +164,7 @@ export default function DiveInfoBar() {
                         }}
                         className="input-field w-36 shrink-0"
                       >
-                        {TEAM_ROLES.filter(
-                          (r) => r.value === member.role || !usedEditRoles.has(r.value)
-                        ).map((r) => (
+                        {TEAM_ROLES.map((r) => (
                           <option key={r.value} value={r.value}>{r.label}</option>
                         ))}
                       </select>

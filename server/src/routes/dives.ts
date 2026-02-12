@@ -31,7 +31,7 @@ router.get('/active', (_req: Request, res: Response) => {
 // POST /api/dives - Start a new dive
 router.post('/', (req: Request, res: Response) => {
   try {
-    const { manager_name, team_members = [] } = req.body as CreateDiveRequest;
+    const { manager_name, team_members = [], name } = req.body as CreateDiveRequest;
 
     if (!manager_name || !manager_name.trim()) {
       res.status(400).json({ error: 'manager_name is required' });
@@ -61,9 +61,10 @@ router.post('/', (req: Request, res: Response) => {
       alertService.resetAlerts(cart.id);
     }
 
+    const diveName = name?.trim() || null;
     const result = db.prepare(
-      'INSERT INTO dives (manager_name, team_members, started_at) VALUES (?, ?, ?)'
-    ).run(manager_name.trim(), JSON.stringify(team_members), now);
+      'INSERT INTO dives (name, manager_name, team_members, started_at) VALUES (?, ?, ?, ?)'
+    ).run(diveName, manager_name.trim(), JSON.stringify(team_members), now);
 
     const dive = db.prepare('SELECT * FROM dives WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(parseDiveRow(dive));
@@ -122,7 +123,7 @@ router.post('/:id/end', (req: Request, res: Response) => {
 router.put('/:id', (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { manager_name, team_members } = req.body as Partial<CreateDiveRequest>;
+    const { manager_name, team_members, name } = req.body as Partial<CreateDiveRequest>;
     const db = getDatabase();
 
     const updates: string[] = [];
@@ -135,6 +136,10 @@ router.put('/:id', (req: Request, res: Response) => {
     if (team_members !== undefined) {
       updates.push('team_members = ?');
       values.push(JSON.stringify(team_members));
+    }
+    if (name !== undefined) {
+      updates.push('name = ?');
+      values.push(name.trim() || null);
     }
 
     if (updates.length === 0) {
